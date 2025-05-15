@@ -20,6 +20,7 @@ const teamMembers: CardGridItemProps[] = [
     imageOffsetY: "10%",
     imageZoom: 1.7,
     meetLink: "https://meet.google.com/abc-defg-hij",
+    email: "samuel@omnigo.ca",
   },
   {
     name: "Xavier Champoux",
@@ -30,6 +31,7 @@ const teamMembers: CardGridItemProps[] = [
     imageOffsetY: "0%",
     imageZoom: 1.1,
     meetLink: "https://meet.google.com/klm-nopq-rst",
+    email: "xavier@omnigo.ca",
   },
   {
     name: "Alexis Potvin",
@@ -40,6 +42,7 @@ const teamMembers: CardGridItemProps[] = [
     imageOffsetY: "6%",
     imageZoom: 1.7,
     meetLink: "https://meet.google.com/uvw-xyz1-234",
+    email: "alexis@omnigo.ca",
   },
   {
     name: "Gabriel Joubert",
@@ -50,6 +53,7 @@ const teamMembers: CardGridItemProps[] = [
     imageOffsetY: "10%",
     imageZoom: 1.8,
     meetLink: "https://meet.google.com/567-89ab-cde",
+    email: "gabriel@omnigo.ca",
   }
 ]
 
@@ -114,6 +118,7 @@ export default function CardGrid({
               imageOffsetY={item.imageOffsetY}
               imageZoom={item.imageZoom}
               meetLink={item.meetLink}
+              email={item.email}
             />
           ))}
         </div>
