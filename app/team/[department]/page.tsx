@@ -1,7 +1,4 @@
 import CardGrid from "@/components/kokonutui/card-grid"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowLeftIcon } from "@radix-ui/react-icons"
 
 interface TeamDepartmentPageProps {
   params: {

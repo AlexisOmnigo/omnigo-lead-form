@@ -383,7 +383,7 @@ export default function LeadQualificationForm() {
                   Quels sont vos principaux objectifs en termes de marketing digital ?
                 </CardDescription>
                 <div className="grid grid-cols-1 gap-2 pt-2">
-                  {["Augmenter la notoriété de marque", "Générer des leads", "Booster les ventes en ligne", "Améliorer l'engagement sur les réseaux", "Refonte de stratégie", "Création de contenu"].map((goal) => (
+                  {["Augmenter la notoriété de marque", "Générer des leads", "Booster les ventes en ligne", "Améliorer l&apos;engagement sur les réseaux", "Refonte de stratégie", "Création de contenu"].map((goal) => (
                     <div key={goal} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -416,7 +416,7 @@ export default function LeadQualificationForm() {
                   Quels sont vos principaux objectifs en termes de ventes ?
                 </CardDescription>
                 <div className="grid grid-cols-1 gap-2 pt-2">
-                  {["Augmenter le CA", "Diversifier la clientèle", "Accélérer le cycle de vente", "Former l'équipe commerciale", "Optimiser la prospection", "Améliorer le CRM"].map((goal) => (
+                  {["Augmenter le CA", "Diversifier la clientèle", "Accélérer le cycle de vente", "Former l&apos;équipe commerciale", "Optimiser la prospection", "Améliorer le CRM"].map((goal) => (
                     <div key={goal} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -499,7 +499,7 @@ export default function LeadQualificationForm() {
               </CardDescription>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="company">Nom de l'entreprise *</Label>
+                  <Label htmlFor="company">Nom de l&apos;entreprise *</Label>
                   <Input
                     id="company"
                     placeholder="Nom de votre entreprise"
@@ -510,7 +510,7 @@ export default function LeadQualificationForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Taille de l'entreprise *</Label>
+                  <Label>Taille de l&apos;entreprise *</Label>
                   <RadioGroup
                     value={formData.companySize}
                     onValueChange={(value) => handleInputChange("companySize", value)}
@@ -531,7 +531,7 @@ export default function LeadQualificationForm() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Secteur d'activité *</Label>
+                  <Label>Secteur d&apos;activité *</Label>
                   <RadioGroup
                     value={formData.industry}
                     onValueChange={(value) => handleInputChange("industry", value)}
@@ -589,7 +589,7 @@ export default function LeadQualificationForm() {
                 Quels sont vos principaux objectifs en termes de marketing digital ?
               </CardDescription>
               <div className="grid grid-cols-1 gap-2 pt-2">
-                {["Augmenter la notoriété de marque", "Générer des leads", "Booster les ventes en ligne", "Améliorer l'engagement sur les réseaux", "Refonte de stratégie", "Création de contenu"].map((goal) => (
+                {["Augmenter la notoriété de marque", "Générer des leads", "Booster les ventes en ligne", "Améliorer l&apos;engagement sur les réseaux", "Refonte de stratégie", "Création de contenu"].map((goal) => (
                   <div key={goal} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -612,7 +612,7 @@ export default function LeadQualificationForm() {
                 Quels sont vos principaux objectifs en termes de ventes ?
               </CardDescription>
               <div className="grid grid-cols-1 gap-2 pt-2">
-                {["Augmenter le CA", "Diversifier la clientèle", "Accélérer le cycle de vente", "Former l'équipe commerciale", "Optimiser la prospection", "Améliorer le CRM"].map((goal) => (
+                {["Augmenter le CA", "Diversifier la clientèle", "Accélérer le cycle de vente", "Former l&apos;équipe commerciale", "Optimiser la prospection", "Améliorer le CRM"].map((goal) => (
                   <div key={goal} className="flex items-center space-x-2">
                     <input
                       type="checkbox"

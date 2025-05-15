@@ -56,7 +56,7 @@ const teamMembers: CardGridItemProps[] = [
 export default function CardGrid({
   items = teamMembers,
   gridTitle = "Rencontrez Notre Équipe",
-  gridDescription = "Cliquez sur un membre de l'équipe pour démarrer une session Google Meet",
+  gridDescription = "Cliquez sur un membre de l&apos;équipe pour démarrer une session Google Meet",
   departmentFilter,
 }: CardGridProps) {
   // Fonction utilitaire pour normaliser les chaînes (enlever les accents)
@@ -86,7 +86,7 @@ export default function CardGrid({
   if (!filteredItems || filteredItems.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-lg text-zinc-500 dark:text-zinc-400">Aucun membre d'équipe à afficher.</p>
+        <p className="text-lg text-zinc-500 dark:text-zinc-400">Aucun membre d&apos;équipe à afficher.</p>
       </div>
     )
   }
