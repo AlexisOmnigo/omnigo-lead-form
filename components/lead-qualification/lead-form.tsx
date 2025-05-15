@@ -20,8 +20,15 @@ interface FormData {
   email: string
   phone: string
   company: string
+  companySize: "1-10" | "11-50" | "51-200" | "201-500" | "500+" | ""
+  industry: "Tech" | "Finance" | "Santé" | "Éducation" | "E-commerce" | "Autre" | ""
+  currentWebsite: string
   budget: "< 5K€" | "5K€ - 20K€" | "20K€ - 50K€" | "> 50K€" | ""
   timeline: "Immédiat" | "1-3 mois" | "3-6 mois" | "> 6 mois" | ""
+  marketingGoals: string[]
+  salesGoals: string[]
+  developmentType: "Site vitrine" | "E-commerce" | "Application web" | "Application mobile" | "Autre" | ""
+  developmentTech: string
   additionalInfo: string
 }
 
@@ -36,16 +43,23 @@ export default function LeadQualificationForm() {
     email: "",
     phone: "",
     company: "",
+    companySize: "",
+    industry: "",
+    currentWebsite: "",
     budget: "",
     timeline: "",
+    marketingGoals: [],
+    salesGoals: [],
+    developmentType: "",
+    developmentTech: "",
     additionalInfo: "",
   })
 
   const calculateProgress = () => {
     if (formData.clientType === "existing") {
-      return (currentStep / 2) * 100
+      return (currentStep / 3) * 100
     } else {
-      return (currentStep / 4) * 100
+      return (currentStep / 5) * 100
     }
   }
 
@@ -110,15 +124,37 @@ export default function LeadQualificationForm() {
     return Math.min(score, 100)
   }
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string | string[]) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }))
   }
 
+  const handleCheckboxChange = (field: keyof FormData, value: string, checked: boolean) => {
+    if (!Array.isArray(formData[field])) return;
+    
+    setFormData((prev) => {
+      const currentValues = [...prev[field] as string[]];
+      
+      if (checked && !currentValues.includes(value)) {
+        return {
+          ...prev,
+          [field]: [...currentValues, value]
+        };
+      } else if (!checked && currentValues.includes(value)) {
+        return {
+          ...prev,
+          [field]: currentValues.filter(item => item !== value)
+        };
+      }
+      
+      return prev;
+    });
+  }
+
   const nextStep = () => {
-    if (formData.clientType === "existing" && currentStep === 2) {
+    if (formData.clientType === "existing" && currentStep === 3) {
       // Calculate score for analytics/backend but don't show to user
       const score = calculateLeadScore()
 
@@ -135,7 +171,7 @@ export default function LeadQualificationForm() {
       return
     }
 
-    if (formData.clientType === "new" && currentStep === 4) {
+    if (formData.clientType === "new" && currentStep === 5) {
       // Calculate score for analytics/backend but don't show to user
       const score = calculateLeadScore()
 
@@ -185,8 +221,31 @@ export default function LeadQualificationForm() {
           return !formData.firstName || !formData.lastName || !formData.email
         }
       case 3:
-        return !formData.department
+        if (formData.clientType === "existing") {
+          // Pour les clients existants, vérifier les questions spécifiques au département
+          if (formData.department === "Marketing") {
+            return formData.marketingGoals.length === 0
+          } else if (formData.department === "Ventes") {
+            return formData.salesGoals.length === 0
+          } else if (formData.department === "Développement") {
+            return !formData.developmentType
+          }
+          return false
+        } else {
+          // Pour les nouveaux clients
+          return !formData.department || !formData.company || !formData.companySize || !formData.industry
+        }
       case 4:
+        // Pour les nouveaux clients - questions spécifiques au département
+        if (formData.department === "Marketing") {
+          return formData.marketingGoals.length === 0
+        } else if (formData.department === "Ventes") {
+          return formData.salesGoals.length === 0
+        } else if (formData.department === "Développement") {
+          return !formData.developmentType
+        }
+        return false
+      case 5:
         return !formData.budget || !formData.timeline
       default:
         return false
@@ -247,16 +306,6 @@ export default function LeadQualificationForm() {
                     <SelectItem value="Développement" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Développement</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="space-y-2">
-                  <Label htmlFor="additionalInfo">Informations complémentaires (optionnel)</Label>
-                  <Textarea
-                    id="additionalInfo"
-                    placeholder="Précisez votre demande pour nous aider à mieux vous accompagner..."
-                    value={formData.additionalInfo}
-                    onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
-                    rows={4}
-                  />
-                </div>
               </div>
             </div>
           )
@@ -324,27 +373,299 @@ export default function LeadQualificationForm() {
           )
         }
       case 3:
-        return (
-          <div className="space-y-4">
-            <CardTitle>Quel département souhaitez-vous contacter ?</CardTitle>
-            <CardDescription>
-              Nous vous mettrons en relation avec les experts du département sélectionné.
-            </CardDescription>
-            <div className="grid grid-cols-1 gap-4 pt-2">
-              <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
-                <SelectTrigger className="dark:bg-zinc-950 bg-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
-                  <SelectValue placeholder="Sélectionnez un département" />
-                </SelectTrigger>
-                <SelectContent className="dark:bg-zinc-950 bg-white">
-                  <SelectItem value="Marketing" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Marketing</SelectItem>
-                  <SelectItem value="Ventes" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Ventes</SelectItem>
-                  <SelectItem value="Développement" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Développement</SelectItem>
-                </SelectContent>
-              </Select>
+        if (formData.clientType === "existing") {
+          // Questions spécifiques selon le département pour les clients existants
+          if (formData.department === "Marketing") {
+            return (
+              <div className="space-y-4">
+                <CardTitle>Vos objectifs marketing</CardTitle>
+                <CardDescription>
+                  Quels sont vos principaux objectifs en termes de marketing digital ?
+                </CardDescription>
+                <div className="grid grid-cols-1 gap-2 pt-2">
+                  {["Augmenter la notoriété de marque", "Générer des leads", "Booster les ventes en ligne", "Améliorer l'engagement sur les réseaux", "Refonte de stratégie", "Création de contenu"].map((goal) => (
+                    <div key={goal} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={goal.replace(/\s+/g, '-').toLowerCase()}
+                        checked={formData.marketingGoals.includes(goal)}
+                        onChange={(e) => handleCheckboxChange("marketingGoals", goal, e.target.checked)}
+                        className="h-4 w-4 border-gray-300 rounded text-[#7DF9FF] focus:ring-[#7DF9FF]"
+                      />
+                      <Label htmlFor={goal.replace(/\s+/g, '-').toLowerCase()} className="cursor-pointer">{goal}</Label>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="additionalInfo">Informations complémentaires</Label>
+                  <Textarea
+                    id="additionalInfo"
+                    placeholder="Précisez vos besoins marketing spécifiques..."
+                    value={formData.additionalInfo}
+                    onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </div>
+            );
+          } else if (formData.department === "Ventes") {
+            return (
+              <div className="space-y-4">
+                <CardTitle>Vos objectifs commerciaux</CardTitle>
+                <CardDescription>
+                  Quels sont vos principaux objectifs en termes de ventes ?
+                </CardDescription>
+                <div className="grid grid-cols-1 gap-2 pt-2">
+                  {["Augmenter le CA", "Diversifier la clientèle", "Accélérer le cycle de vente", "Former l'équipe commerciale", "Optimiser la prospection", "Améliorer le CRM"].map((goal) => (
+                    <div key={goal} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={goal.replace(/\s+/g, '-').toLowerCase()}
+                        checked={formData.salesGoals.includes(goal)}
+                        onChange={(e) => handleCheckboxChange("salesGoals", goal, e.target.checked)}
+                        className="h-4 w-4 border-gray-300 rounded text-[#7DF9FF] focus:ring-[#7DF9FF]"
+                      />
+                      <Label htmlFor={goal.replace(/\s+/g, '-').toLowerCase()} className="cursor-pointer">{goal}</Label>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="additionalInfo">Informations complémentaires</Label>
+                  <Textarea
+                    id="additionalInfo"
+                    placeholder="Précisez vos besoins commerciaux spécifiques..."
+                    value={formData.additionalInfo}
+                    onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </div>
+            );
+          } else if (formData.department === "Développement") {
+            return (
+              <div className="space-y-4">
+                <CardTitle>Votre projet de développement</CardTitle>
+                <CardDescription>
+                  Quel type de développement vous intéresse ?
+                </CardDescription>
+                <RadioGroup
+                  value={formData.developmentType}
+                  onValueChange={(value) => handleInputChange("developmentType", value)}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"
+                >
+                  {(["Site vitrine", "E-commerce", "Application web", "Application mobile", "Autre"] as const).map((type) => (
+                    <div key={type}>
+                      <RadioGroupItem value={type} id={type.replace(/\s+/g, '-').toLowerCase()} className="peer sr-only" />
+                      <Label
+                        htmlFor={type.replace(/\s+/g, '-').toLowerCase()}
+                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
+                      >
+                        <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{type}</span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="developmentTech">Technologies préférées (optionnel)</Label>
+                  <Input
+                    id="developmentTech"
+                    placeholder="Ex: React, Node.js, WordPress..."
+                    value={formData.developmentTech}
+                    onChange={(e) => handleInputChange("developmentTech", e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2 mt-4">
+                  <Label htmlFor="additionalInfo">Informations complémentaires</Label>
+                  <Textarea
+                    id="additionalInfo"
+                    placeholder="Décrivez votre projet ou vos besoins spécifiques..."
+                    value={formData.additionalInfo}
+                    onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </div>
+            );
+          }
+        } else {
+          // Informations sur l'entreprise pour les nouveaux clients
+          return (
+            <div className="space-y-4">
+              <CardTitle>Votre entreprise</CardTitle>
+              <CardDescription>
+                Parlez-nous un peu plus de votre entreprise pour que nous puissions mieux comprendre vos besoins.
+              </CardDescription>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company">Nom de l'entreprise *</Label>
+                  <Input
+                    id="company"
+                    placeholder="Nom de votre entreprise"
+                    value={formData.company}
+                    onChange={(e) => handleInputChange("company", e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Taille de l'entreprise *</Label>
+                  <RadioGroup
+                    value={formData.companySize}
+                    onValueChange={(value) => handleInputChange("companySize", value)}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"
+                  >
+                    {(["1-10", "11-50", "51-200", "201-500", "500+"] as const).map((size) => (
+                      <div key={size}>
+                        <RadioGroupItem value={size} id={`size-${size}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`size-${size}`}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
+                        >
+                          <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{size}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Secteur d'activité *</Label>
+                  <RadioGroup
+                    value={formData.industry}
+                    onValueChange={(value) => handleInputChange("industry", value)}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"
+                  >
+                    {(["Tech", "Finance", "Santé", "Éducation", "E-commerce", "Autre"] as const).map((industry) => (
+                      <div key={industry}>
+                        <RadioGroupItem value={industry} id={`industry-${industry}`} className="peer sr-only" />
+                        <Label
+                          htmlFor={`industry-${industry}`}
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
+                        >
+                          <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{industry}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="currentWebsite">Site web actuel (optionnel)</Label>
+                  <Input
+                    id="currentWebsite"
+                    placeholder="https://www.votresite.com"
+                    value={formData.currentWebsite}
+                    onChange={(e) => handleInputChange("currentWebsite", e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="department">Département à contacter *</Label>
+                  <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
+                    <SelectTrigger className="dark:bg-zinc-950 bg-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
+                      <SelectValue placeholder="Sélectionnez un département" />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-zinc-950 bg-white">
+                      <SelectItem value="Marketing" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Marketing</SelectItem>
+                      <SelectItem value="Ventes" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Ventes</SelectItem>
+                      <SelectItem value="Développement" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Développement</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
-          </div>
-        )
+          );
+        }
+        
       case 4:
+        // Questions spécifiques au département pour les nouveaux clients
+        if (formData.department === "Marketing") {
+          return (
+            <div className="space-y-4">
+              <CardTitle>Vos objectifs marketing</CardTitle>
+              <CardDescription>
+                Quels sont vos principaux objectifs en termes de marketing digital ?
+              </CardDescription>
+              <div className="grid grid-cols-1 gap-2 pt-2">
+                {["Augmenter la notoriété de marque", "Générer des leads", "Booster les ventes en ligne", "Améliorer l'engagement sur les réseaux", "Refonte de stratégie", "Création de contenu"].map((goal) => (
+                  <div key={goal} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={goal.replace(/\s+/g, '-').toLowerCase()}
+                      checked={formData.marketingGoals.includes(goal)}
+                      onChange={(e) => handleCheckboxChange("marketingGoals", goal, e.target.checked)}
+                      className="h-4 w-4 border-gray-300 rounded text-[#7DF9FF] focus:ring-[#7DF9FF]"
+                    />
+                    <Label htmlFor={goal.replace(/\s+/g, '-').toLowerCase()} className="cursor-pointer">{goal}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        } else if (formData.department === "Ventes") {
+          return (
+            <div className="space-y-4">
+              <CardTitle>Vos objectifs commerciaux</CardTitle>
+              <CardDescription>
+                Quels sont vos principaux objectifs en termes de ventes ?
+              </CardDescription>
+              <div className="grid grid-cols-1 gap-2 pt-2">
+                {["Augmenter le CA", "Diversifier la clientèle", "Accélérer le cycle de vente", "Former l'équipe commerciale", "Optimiser la prospection", "Améliorer le CRM"].map((goal) => (
+                  <div key={goal} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id={goal.replace(/\s+/g, '-').toLowerCase()}
+                      checked={formData.salesGoals.includes(goal)}
+                      onChange={(e) => handleCheckboxChange("salesGoals", goal, e.target.checked)}
+                      className="h-4 w-4 border-gray-300 rounded text-[#7DF9FF] focus:ring-[#7DF9FF]"
+                    />
+                    <Label htmlFor={goal.replace(/\s+/g, '-').toLowerCase()} className="cursor-pointer">{goal}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        } else if (formData.department === "Développement") {
+          return (
+            <div className="space-y-4">
+              <CardTitle>Votre projet de développement</CardTitle>
+              <CardDescription>
+                Quel type de développement vous intéresse ?
+              </CardDescription>
+              <RadioGroup
+                value={formData.developmentType}
+                onValueChange={(value) => handleInputChange("developmentType", value)}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"
+              >
+                {(["Site vitrine", "E-commerce", "Application web", "Application mobile", "Autre"] as const).map((type) => (
+                  <div key={type}>
+                    <RadioGroupItem value={type} id={type.replace(/\s+/g, '-').toLowerCase()} className="peer sr-only" />
+                    <Label
+                      htmlFor={type.replace(/\s+/g, '-').toLowerCase()}
+                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
+                    >
+                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{type}</span>
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+              
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="developmentTech">Technologies préférées (optionnel)</Label>
+                <Input
+                  id="developmentTech"
+                  placeholder="Ex: React, Node.js, WordPress..."
+                  value={formData.developmentTech}
+                  onChange={(e) => handleInputChange("developmentTech", e.target.value)}
+                />
+              </div>
+            </div>
+          );
+        }
+        
+      case 5:
         return (
           <div className="space-y-4">
             <CardTitle>Informations sur votre projet</CardTitle>
@@ -468,7 +789,7 @@ export default function LeadQualificationForm() {
         <div className="w-full mb-2">
           <div className="flex justify-between text-sm mb-1">
             <span>
-              Étape {currentStep} / {formData.clientType === "existing" ? 2 : 4}
+              Étape {currentStep} / {formData.clientType === "existing" ? 3 : 5}
             </span>
             <span>{Math.round(calculateProgress())}%</span>
           </div>
@@ -485,13 +806,12 @@ export default function LeadQualificationForm() {
           <div></div>
         )}
         <Button onClick={nextStep} disabled={isNextDisabled()} className="cursor-pointer">
-          {formData.clientType === "existing" && currentStep === 2
+          {(formData.clientType === "existing" && currentStep === 3) ||
+           (formData.clientType === "new" && currentStep === 5)
             ? "Soumettre"
-            : formData.clientType === "new" && currentStep === 4
-              ? "Soumettre"
-              : "Suivant"}
-          {(formData.clientType === "existing" && currentStep === 2) ||
-          (formData.clientType === "new" && currentStep === 4) ? null : (
+            : "Suivant"}
+          {(formData.clientType === "existing" && currentStep === 3) ||
+           (formData.clientType === "new" && currentStep === 5) ? null : (
             <ArrowRightIcon className="ml-2 h-4 w-4" />
           )}
         </Button>
