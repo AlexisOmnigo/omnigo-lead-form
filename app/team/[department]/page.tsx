@@ -1,10 +1,8 @@
 import CardGrid from "@/components/kokonutui/card-grid"
 
-interface TeamDepartmentPageProps {
-  params: {
-    department: string
-  }
-  searchParams?: Record<string, string | string[]>
+// Définition des paramètres attendus par la page
+type Params = {
+  department: string
 }
 
 // Fonction pour normaliser une chaîne de caractères (enlever les accents)
@@ -21,12 +19,14 @@ const departmentNames: Record<string, string> = {
   'ventes': 'Ventes'
 };
 
-export default async function TeamDepartmentPage({ 
+// Utilisons la définition exacte de Next.js: export default function Page({ params, searchParams }: Props)
+export default function Page({ 
   params 
-}: TeamDepartmentPageProps) {
-  // Attendre explicitement la résolution des paramètres
-  const resolvedParams = await Promise.resolve(params);
-  const department = resolvedParams.department;
+}: {
+  params: Params
+}) {
+  // Récupérer le paramètre de département
+  const department = params.department;
   
   // Récupérer le nom d'affichage correct avec accents si disponible
   const normalizedDept = normalizeString(department);
