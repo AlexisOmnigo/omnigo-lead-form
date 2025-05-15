@@ -9,29 +9,42 @@ interface TeamDepartmentPageProps {
   }
 }
 
-export default async function TeamDepartmentPage({ params }: TeamDepartmentPageProps) {
-  const department = params.department
+// Fonction pour normaliser une chaîne de caractères (enlever les accents)
+const normalizeString = (str: string) => {
+  return str.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+};
 
-  // Capitalize first letter for display
-  const displayDepartment = department.charAt(0).toUpperCase() + department.slice(1)
+// Dictionnaire pour retrouver les vrais noms des départements avec accents
+const departmentNames: Record<string, string> = {
+  'developpement': 'Développement',
+  'marketing': 'Marketing',
+  'ventes': 'Ventes'
+};
+
+export default async function TeamDepartmentPage({ 
+  params 
+}: TeamDepartmentPageProps) {
+  // Attendre explicitement la résolution des paramètres
+  const resolvedParams = await Promise.resolve(params);
+  const department = resolvedParams.department;
+  
+  // Récupérer le nom d'affichage correct avec accents si disponible
+  const normalizedDept = normalizeString(department);
+  const displayDepartment = departmentNames[normalizedDept] || 
+    (department.charAt(0).toUpperCase() + department.slice(1));
 
   return (
     <main className="bg-gray-50 dark:bg-zinc-950 min-h-screen relative">
-      <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
-        <Link href="/">
-          <Button variant="outline" size="sm" className="flex items-center gap-2 cursor-pointer">
-            <ArrowLeftIcon className="h-4 w-4" />
-            Revenir au début
-          </Button>
-        </Link>
-      </div>
-
-      <div className="container mx-auto px-4 py-12">
-        <CardGrid
-          departmentFilter={department}
-          gridTitle={`Équipe ${displayDepartment}`}
-          gridDescription="Cliquez sur un membre de l'équipe pour démarrer une session Google Meet"
-        />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-10">
+          <CardGrid
+            departmentFilter={department}
+            gridTitle={`Équipe ${displayDepartment}`}
+            gridDescription="Cliquez sur un membre de l'équipe pour démarrer une session Google Meet"
+          />
+        </div>
       </div>
     </main>
   )

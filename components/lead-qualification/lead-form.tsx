@@ -125,8 +125,13 @@ export default function LeadQualificationForm() {
       // Store score in localStorage or send to backend
       localStorage.setItem("leadScore", score.toString())
 
+      // Normaliser le nom du département (enlever les accents) pour l'URL
+      const normalizedDepartment = formData.department.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
       // Redirect immediately to team page with department filter
-      router.push(`/team/${formData.department.toLowerCase()}`)
+      router.push(`/team/${normalizedDepartment}`)
       return
     }
 
@@ -136,9 +141,29 @@ export default function LeadQualificationForm() {
 
       // Store score in localStorage or send to backend
       localStorage.setItem("leadScore", score.toString())
+      
+      // Afficher le score dans la console pour les nouveaux clients
+      console.log("----------------------------------");
+      console.log(`Score du prospect: ${score}/100`);
+      console.log("Informations du prospect:", {
+        nom: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        téléphone: formData.phone || "Non renseigné",
+        entreprise: formData.company || "Non renseignée",
+        département: formData.department,
+        budget: formData.budget,
+        délai: formData.timeline,
+        informations_complémentaires: formData.additionalInfo || "Aucune"
+      });
+      console.log("----------------------------------");
+
+      // Normaliser le nom du département (enlever les accents) pour l'URL
+      const normalizedDepartment = formData.department.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
 
       // Redirect immediately to team page with department filter
-      router.push(`/team/${formData.department.toLowerCase()}`)
+      router.push(`/team/${normalizedDepartment}`)
       return
     }
 
@@ -180,7 +205,7 @@ export default function LeadQualificationForm() {
             <RadioGroup
               value={formData.clientType}
               onValueChange={(value) => handleInputChange("clientType", value)}
-              className="grid grid-cols-2 gap-4 pt-2"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2"
             >
               <div>
                 <RadioGroupItem value="existing" id="existing" className="peer sr-only" />
@@ -242,7 +267,7 @@ export default function LeadQualificationForm() {
               <CardDescription>
                 Merci de nous fournir vos informations de contact pour que nous puissions vous recontacter.
               </CardDescription>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">Prénom *</Label>
                   <Input
@@ -275,7 +300,7 @@ export default function LeadQualificationForm() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Téléphone</Label>
                   <Input
@@ -332,7 +357,7 @@ export default function LeadQualificationForm() {
                 <RadioGroup
                   value={formData.budget}
                   onValueChange={(value) => handleInputChange("budget", value)}
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2"
                 >
                   <div>
                     <RadioGroupItem value="< 5K€" id="budget1" className="peer sr-only" />
@@ -378,7 +403,7 @@ export default function LeadQualificationForm() {
                 <RadioGroup
                   value={formData.timeline}
                   onValueChange={(value) => handleInputChange("timeline", value)}
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2"
                 >
                   <div>
                     <RadioGroupItem value="Immédiat" id="timeline1" className="peer sr-only" />

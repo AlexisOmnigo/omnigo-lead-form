@@ -6,8 +6,11 @@ import Link from "next/link"
 export interface CardGridItemProps {
   name?: string
   role?: string
-  department?: string
+  department?: string | string[]
   image?: string
+  imageOffsetX?: string | number
+  imageOffsetY?: string | number
+  imageZoom?: number
   badge?: {
     text: string
     variant: "pink" | "indigo" | "orange" | "green" | "cyan"
@@ -21,10 +24,20 @@ export default function CardGrid({
   role = "Chef de Produit",
   department = "Développement",
   image = "/professional-person.png",
+  imageOffsetX = "50%",
+  imageOffsetY = "50%",
+  imageZoom = 1,
   badge = { text: "Développement", variant: "cyan" },
   href = "#",
   meetLink = "https://meet.google.com/abc-defg-hij",
 }: CardGridItemProps) {
+  // Determine what to display in the badge
+  const displayDepartment = Array.isArray(department) ? department[0] : department;
+  
+  // Préparer les offsets
+  const positionX = typeof imageOffsetX === 'number' ? `${imageOffsetX}px` : imageOffsetX;
+  const positionY = typeof imageOffsetY === 'number' ? `${imageOffsetY}px` : imageOffsetY;
+  
   return (
     <Link
       href={meetLink || href}
@@ -45,16 +58,25 @@ export default function CardGrid({
         )}
       >
         <div className="relative w-full h-full overflow-hidden">
-          <Image
-            src={image || "/placeholder.svg"}
-            alt={name}
-            fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
-          />
+          <div 
+            className="absolute inset-0"
+            style={{
+              transform: `scale(${imageZoom})`,
+              transformOrigin: `${positionX} ${positionY}`
+            }}
+          >
+            <Image
+              src={image || "/placeholder.svg"}
+              alt={name}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover"
+              style={{ objectPosition: `${positionX} ${positionY}` }}
+            />
+          </div>
         </div>
 
-        <div className={cn("absolute inset-0", "bg-linear-to-t from-black/90 via-black/40 to-transparent")} />
+        <div className={cn("absolute inset-0", "bg-linear-to-t from-black/90 via-black/0 to-transparent")} />
 
         <div className="absolute top-3 right-3">
           <span
@@ -65,7 +87,7 @@ export default function CardGrid({
               "shadow-xs",
             )}
           >
-            {department || badge.text}
+            {displayDepartment || badge.text}
           </span>
         </div>
 

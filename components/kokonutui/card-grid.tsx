@@ -1,4 +1,7 @@
 import CardGridItem, { type CardGridItemProps } from "./card/card-grid"
+import { Button } from "@/components/ui/button"
+import { ArrowLeftIcon } from "@radix-ui/react-icons"
+import Link from "next/link"
 
 interface CardGridProps {
   items?: CardGridItemProps[]
@@ -9,47 +12,45 @@ interface CardGridProps {
 
 const teamMembers: CardGridItemProps[] = [
   {
-    name: "Emma Johnson",
-    role: "Chef de Produit",
-    department: "Marketing",
-    image: "/professional-woman-diverse.png",
+    name: "Samuel Béland",
+    role: "CEO",
+    department: ["Ventes", "Marketing", "Développement"],
+    image: "/photos/samuel.jpg",
+    imageOffsetX: "50%",
+    imageOffsetY: "10%",
+    imageZoom: 1.7,
     meetLink: "https://meet.google.com/abc-defg-hij",
   },
   {
-    name: "Michael Chen",
-    role: "Designer UX",
-    department: "Développement",
-    image: "/asian-professional-man.png",
+    name: "Xavier Champoux",
+    role: "Directeur Marketing",
+    department: "Marketing",
+    image: "/photos/xavier.jpg",
+    imageOffsetX: "65%",
+    imageOffsetY: "0%",
+    imageZoom: 1.1,
     meetLink: "https://meet.google.com/klm-nopq-rst",
   },
   {
-    name: "Sarah Williams",
-    role: "Directrice Marketing",
-    department: "Marketing",
-    image: "/black-woman-professional.png",
+    name: "Alexis Potvin",
+    role: "Responsable des Opérations de développement",
+    department: ["Développement", "Ventes"],
+    image: "/photos/alexis.jpg",
+    imageOffsetX: "55%",
+    imageOffsetY: "6%",
+    imageZoom: 1.7,
     meetLink: "https://meet.google.com/uvw-xyz1-234",
   },
   {
-    name: "David Rodriguez",
-    role: "Ingénieur Logiciel",
-    department: "Développement",
-    image: "/placeholder-sllf5.png",
+    name: "Gabriel Joubert",
+    role: "Responsable des Opérations de Marketing",
+    department: "Marketing",
+    image: "/photos/gabriel.jpg",
+    imageOffsetX: "35%",
+    imageOffsetY: "10%",
+    imageZoom: 1.8,
     meetLink: "https://meet.google.com/567-89ab-cde",
-  },
-  {
-    name: "Aisha Patel",
-    role: "Responsable Commercial",
-    department: "Ventes",
-    image: "/indian-woman-professional.png",
-    meetLink: "https://meet.google.com/fgh-ijkl-mno",
-  },
-  {
-    name: "Thomas Dubois",
-    role: "Représentant Commercial",
-    department: "Ventes",
-    image: "/placeholder-8k604.png",
-    meetLink: "https://meet.google.com/pqr-stuv-wxy",
-  },
+  }
 ]
 
 export default function CardGrid({
@@ -58,9 +59,28 @@ export default function CardGrid({
   gridDescription = "Cliquez sur un membre de l'équipe pour démarrer une session Google Meet",
   departmentFilter,
 }: CardGridProps) {
-  // Filter items by department if a filter is provided
-  const filteredItems = departmentFilter
-    ? items.filter((item) => item.department && item.department.toLowerCase() === departmentFilter.toLowerCase())
+  // Fonction utilitaire pour normaliser les chaînes (enlever les accents)
+  const normalizeString = (str: string) => {
+    return str.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  };
+
+  // Filter items by department if a filter is provided and is not empty
+  const filteredItems = departmentFilter && departmentFilter.trim() !== ""
+    ? items.filter((item) => {
+        if (!item.department) return false;
+        
+        const normalizedFilter = normalizeString(departmentFilter);
+        
+        if (Array.isArray(item.department)) {
+          return item.department.some(
+            dept => normalizeString(dept) === normalizedFilter
+          );
+        }
+        
+        return normalizeString(item.department) === normalizedFilter;
+      })
     : items
 
   if (!filteredItems || filteredItems.length === 0) {
@@ -72,8 +92,8 @@ export default function CardGrid({
   }
 
   return (
-    <section className="w-full py-12 md:py-16 lg:py-20">
-      <div className="container mx-auto px-4 md:px-6">
+    <section className="w-full md:py-16 lg:py-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {gridTitle && (
           <h2 className="mb-2 tracking-tighter text-3xl font-bold text-left text-zinc-900 dark:text-zinc-100 sm:text-4xl">
             {departmentFilter
@@ -82,7 +102,7 @@ export default function CardGrid({
           </h2>
         )}
         <p className="mb-8 text-lg text-left text-zinc-900 dark:text-zinc-100 tracking-tight">{gridDescription}</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-6">
           {filteredItems.map((item, index) => (
             <CardGridItem
               key={`${item.meetLink}-${item.name}-${index}`}
@@ -90,11 +110,22 @@ export default function CardGrid({
               role={item.role}
               department={item.department}
               image={item.image}
+              imageOffsetX={item.imageOffsetX}
+              imageOffsetY={item.imageOffsetY}
+              imageZoom={item.imageZoom}
               meetLink={item.meetLink}
             />
           ))}
         </div>
+        <Link href="/">
+          <Button variant="outline" size="sm" className="flex items-center gap-2 cursor-pointer">
+            <ArrowLeftIcon className="h-4 w-4" />
+            Revenir au début
+          </Button>
+        </Link> 
+        
       </div>
+      
     </section>
   )
 }
