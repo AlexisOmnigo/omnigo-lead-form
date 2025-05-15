@@ -1,10 +1,5 @@
 import CardGrid from "@/components/kokonutui/card-grid"
 
-// Définition des paramètres attendus par la page
-type Params = {
-  department: string
-}
-
 // Fonction pour normaliser une chaîne de caractères (enlever les accents)
 const normalizeString = (str: string) => {
   return str.toLowerCase()
@@ -19,14 +14,17 @@ const departmentNames: Record<string, string> = {
   'ventes': 'Ventes'
 };
 
-// Utilisons la définition exacte de Next.js: export default function Page({ params, searchParams }: Props)
-export default function Page({ 
-  params 
+// Définir le type des paramètres comme une Promise pour Next.js 15
+type ParamsType = Promise<{ department: string }>;
+
+// Suivre le modèle de Next.js 15 pour les composants de page
+export default async function Page({
+  params,
 }: {
-  params: Params
+  params: ParamsType
 }) {
-  // Récupérer le paramètre de département
-  const department = params.department;
+  // Attend la résolution de la Promise params
+  const { department } = await params;
   
   // Récupérer le nom d'affichage correct avec accents si disponible
   const normalizedDept = normalizeString(department);
