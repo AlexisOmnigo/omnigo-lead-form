@@ -1,10 +1,10 @@
 import CardGrid from "@/components/kokonutui/card-grid"
-import { Params } from "next/dist/shared/lib/router/utils/route-matcher"
 
 interface TeamDepartmentPageProps {
-  params: Params & {
+  params: {
     department: string
   }
+  searchParams?: Record<string, string | string[]>
 }
 
 // Fonction pour normaliser une chaîne de caractères (enlever les accents)
