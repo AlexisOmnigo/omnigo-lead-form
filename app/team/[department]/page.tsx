@@ -35,11 +35,11 @@ export default async function Page({
     <main className="bg-gray-50 dark:bg-zinc-950 min-h-screen relative">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-10">
-          <CardGrid
-            departmentFilter={department}
-            gridTitle={`Équipe ${displayDepartment}`}
+        <CardGrid
+          departmentFilter={department}
+          gridTitle={`Équipe ${displayDepartment}`}
             gridDescription="Cliquez sur un membre de l&apos;équipe pour démarrer une session Google Meet"
-          />
+        />
         </div>
       </div>
     </main>

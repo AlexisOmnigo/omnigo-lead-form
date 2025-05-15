@@ -491,12 +491,12 @@ export default function LeadQualificationForm() {
           }
         } else {
           // Informations sur l'entreprise pour les nouveaux clients
-          return (
-            <div className="space-y-4">
+        return (
+          <div className="space-y-4">
               <CardTitle>Votre entreprise</CardTitle>
-              <CardDescription>
+            <CardDescription>
                 Parlez-nous un peu plus de votre entreprise pour que nous puissions mieux comprendre vos besoins.
-              </CardDescription>
+            </CardDescription>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="company">Nom de l&apos;entreprise *</Label>
@@ -563,18 +563,18 @@ export default function LeadQualificationForm() {
                 
                 <div className="space-y-2">
                   <Label htmlFor="department">Département à contacter *</Label>
-                  <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
+              <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
                     <SelectTrigger className="dark:bg-zinc-950 bg-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
-                      <SelectValue placeholder="Sélectionnez un département" />
-                    </SelectTrigger>
+                  <SelectValue placeholder="Sélectionnez un département" />
+                </SelectTrigger>
                     <SelectContent className="dark:bg-zinc-950 bg-white">
                       <SelectItem value="Marketing" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Marketing</SelectItem>
                       <SelectItem value="Ventes" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Ventes</SelectItem>
                       <SelectItem value="Développement" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Développement</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
             </div>
           );
         }
@@ -808,8 +808,8 @@ export default function LeadQualificationForm() {
         <Button onClick={nextStep} disabled={isNextDisabled()} className="cursor-pointer">
           {(formData.clientType === "existing" && currentStep === 3) ||
            (formData.clientType === "new" && currentStep === 5)
-            ? "Soumettre"
-            : "Suivant"}
+              ? "Soumettre"
+              : "Suivant"}
           {(formData.clientType === "existing" && currentStep === 3) ||
            (formData.clientType === "new" && currentStep === 5) ? null : (
             <ArrowRightIcon className="ml-2 h-4 w-4" />

@@ -42,7 +42,7 @@ export const getOAuth2Client = (calendarId: string) => {
   }
 };
 
-// Récupérer les créneaux disponibles en fonction des événements existants
+// Récupérer les créneaux disponibles en utilisant freebusy.query
 export const getAvailableTimeSlots = async (
   calendarId: string,
   startDate: Date,
@@ -60,22 +60,25 @@ export const getAvailableTimeSlots = async (
     const calendar = google.calendar({ version: 'v3', auth });
     
     try {
-      // Récupérer les événements pour la période
-      const eventsResponse = await calendar.events.list({
-        calendarId,
-        timeMin: startDate.toISOString(),
-        timeMax: endDate.toISOString(),
-        singleEvents: true,
-        orderBy: 'startTime',
+      // Utiliser l'API freebusy pour obtenir les périodes occupées
+      const freeBusyResponse = await calendar.freebusy.query({
+        requestBody: {
+          timeMin: startDate.toISOString(),
+          timeMax: endDate.toISOString(),
+          timeZone,
+          items: [{ id: calendarId }]
+        }
       });
       
       // Extraire les périodes occupées
-      const busyTimes = eventsResponse.data.items.map(event => ({
-        start: event.start.dateTime || event.start.date,
-        end: event.end.dateTime || event.end.date,
-      }));
+      const busySlots = freeBusyResponse.data.calendars?.[calendarId]?.busy || [];
+      console.log(`${busySlots.length} périodes occupées trouvées pour ${calendarId}`);
       
-      console.log(`${busyTimes.length} événements trouvés pour ${calendarId}`);
+      // Convertir les périodes occupées au format attendu
+      const busyTimes = busySlots.map(slot => ({
+        start: slot.start,
+        end: slot.end
+      }));
       
       // Générer les créneaux disponibles
       return generateAvailableTimeSlots(startDate, endDate, busyTimes, durationMinutes, timeZone);

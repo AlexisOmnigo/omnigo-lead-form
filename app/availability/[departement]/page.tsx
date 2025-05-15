@@ -45,9 +45,17 @@ export default function EmployeeAvailabilityPage({
 
   // État pour les créneaux horaires et le membre de l'équipe sélectionné
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [allTimeSlots, setAllTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [teamMember, setTeamMember] = useState<TeamMember | null>(null);
+  
+  // État pour la navigation par date
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dateRange, setDateRange] = useState<{ start: Date, end: Date }>({
+    start: new Date(),
+    end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  });
 
   useEffect(() => {
     // Fonction pour récupérer le membre de l'équipe
@@ -65,133 +73,183 @@ export default function EmployeeAvailabilityPage({
       fetchAvailability(mockTeamMember);
     };
 
-    // Simuler une requête à l'API Google Calendar pour les disponibilités
-    const fetchAvailability = async (member: TeamMember) => {
-      setLoading(true);
-      
-      try {
-        // Utiliser l'email de l'employé comme calendarId
-        const calendarId = member.email;
-        
-        // Préparer les dates (pour les 7 prochains jours)
-        const startDate = new Date().toISOString();
-        const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-        
-        // Appeler l'API pour récupérer les disponibilités
-        const response = await fetch('/api/google/availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            calendarId,
-            startDate,
-            endDate,
-            timeZone: 'Europe/Paris',
-            duration: 30 // durée en minutes
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (data.availableSlots && data.availableSlots.length > 0) {
-          setTimeSlots(data.availableSlots);
-        } else {
-          setTimeSlots([]);
-        }
-      } catch (error) {
-        console.error('Erreur lors de la récupération des disponibilités:', error);
-        setTimeSlots([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     getTeamMember();
   }, [searchParams]);
 
-  // Fonction pour générer des créneaux fictifs (à remplacer par des données réelles)
-  const generateTimeSlots = (): TimeSlot[] => {
-    const slots: TimeSlot[] = [];
-    const today = new Date();
+  // Fonction pour récupérer les disponibilités avec des dates spécifiques
+  const fetchAvailabilityWithDates = async (member: TeamMember, start: Date, end: Date) => {
+    setLoading(true);
     
-    // Générer des créneaux pour les 5 prochains jours ouvrables
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
+    try {
+      // Utiliser l'email de l'employé comme calendarId
+      const calendarId = member.email;
       
-      // Sauter les weekends
-      if (date.getDay() === 0 || date.getDay() === 6) {
-        continue;
+      // Préparer les dates
+      const startDate = start.toISOString();
+      const endDate = end.toISOString();
+      
+      // Mettre à jour l'état dateRange avec les nouvelles dates
+      setDateRange({ start, end });
+      
+      // Créer un tableau des jours qui seront fetchés pour un log visuel
+      const daysBeingFetched: Date[] = [];
+      const currentDate = new Date(start);
+      while (currentDate <= end) {
+        daysBeingFetched.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
       }
       
-      // Créneaux du matin
-      for (let hour = 9; hour < 12; hour++) {
-        const startTime = new Date(date);
-        startTime.setHours(hour, 0, 0);
-        
-        const endTime = new Date(date);
-        endTime.setHours(hour, 30, 0);
-        
-        if (Math.random() > 0.3) { // Simuler des créneaux disponibles (70% de chance)
-          const id = `slot-${startTime.getTime()}`;
-          const formattedDate = startTime.toLocaleDateString('fr-FR', { 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric' 
-          });
-          const formattedStartTime = startTime.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          const formattedEndTime = endTime.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          
-          slots.push({
-            id,
-            start: startTime.toISOString(),
-            end: endTime.toISOString(),
-            formattedTime: `${formattedDate} — ${formattedStartTime} - ${formattedEndTime}`
-          });
-        }
-      }
+      // Afficher un log visuel des jours fetchés
+      console.log('=== JOURS FETCHÉS ===');
+      daysBeingFetched.forEach(day => {
+        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+        const formattedDay = day.toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long'
+        });
+        console.log(
+          `${isWeekend ? '🔴' : '🟢'} ${formattedDay}${isWeekend ? ' (weekend)' : ''}`
+        );
+      });
+      console.log('====================');
       
-      // Créneaux de l'après-midi
-      for (let hour = 14; hour < 17; hour++) {
-        const startTime = new Date(date);
-        startTime.setHours(hour, 0, 0);
+      console.log(`Récupération des disponibilités pour ${calendarId} du ${start.toLocaleDateString()} au ${end.toLocaleDateString()}`);
+      
+      // Appeler l'API pour récupérer les disponibilités
+      const response = await fetch('/api/google/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          calendarId,
+          startDate,
+          endDate,
+          timeZone: 'Europe/Paris',
+          duration: 30 // durée en minutes
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.availableSlots && data.availableSlots.length > 0) {
+        console.log(`${data.availableSlots.length} créneaux disponibles reçus`);
         
-        const endTime = new Date(date);
-        endTime.setHours(hour, 30, 0);
+        // Grouper les créneaux par jour pour le log
+        const slotsByDay: Record<string, TimeSlot[]> = {};
+        data.availableSlots.forEach((slot: TimeSlot) => {
+          const slotDate = new Date(slot.start);
+          const dateKey = slotDate.toLocaleDateString('fr-FR');
+          if (!slotsByDay[dateKey]) {
+            slotsByDay[dateKey] = [];
+          }
+          slotsByDay[dateKey].push(slot);
+        });
         
-        if (Math.random() > 0.3) { // Simuler des créneaux disponibles (70% de chance)
-          const id = `slot-${startTime.getTime()}`;
-          const formattedDate = startTime.toLocaleDateString('fr-FR', { 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric' 
-          });
-          const formattedStartTime = startTime.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          const formattedEndTime = endTime.toLocaleTimeString('fr-FR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          
-          slots.push({
-            id,
-            start: startTime.toISOString(),
-            end: endTime.toISOString(),
-            formattedTime: `${formattedDate} — ${formattedStartTime} - ${formattedEndTime}`
-          });
-        }
+        // Afficher le nombre de créneaux par jour
+        console.log('=== CRÉNEAUX PAR JOUR ===');
+        Object.keys(slotsByDay).forEach(dateKey => {
+          console.log(`📅 ${dateKey}: ${slotsByDay[dateKey].length} créneaux disponibles`);
+        });
+        console.log('=======================');
+        
+        setAllTimeSlots(data.availableSlots);
+        // Filtrer les créneaux pour la date sélectionnée
+        filterTimeSlotsByDate(data.availableSlots, selectedDate);
+      } else {
+        console.log('❌ Aucun créneau disponible reçu');
+        setAllTimeSlots([]);
+        setTimeSlots([]);
       }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des disponibilités:', error);
+      setAllTimeSlots([]);
+      setTimeSlots([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fonction pour récupérer les disponibilités avec l'état dateRange actuel
+  const fetchAvailability = async (member: TeamMember) => {
+    await fetchAvailabilityWithDates(member, dateRange.start, dateRange.end);
+  };
+
+  // Filtrer les créneaux par date
+  const filterTimeSlotsByDate = (slots: TimeSlot[], date: Date) => {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    console.log(`Filtrage des créneaux pour le ${date.toLocaleDateString()} (${slots.length} créneaux au total)`);
+    
+    const filteredSlots = slots.filter(slot => {
+      const slotDate = new Date(slot.start);
+      return slotDate >= startOfDay && slotDate <= endOfDay;
+    });
+    
+    console.log(`${filteredSlots.length} créneaux disponibles pour le ${date.toLocaleDateString()}`);
+    setTimeSlots(filteredSlots);
+  };
+
+  // Changer de date
+  const changeDate = (daysToAdd: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(selectedDate.getDate() + daysToAdd);
+    
+    // Si la nouvelle date dépasse la plage actuelle, charger plus de dates
+    if (newDate > dateRange.end) {
+      // Définir une nouvelle plage de 7 jours à partir de la date sélectionnée
+      const newStartDate = new Date(newDate);
+      newStartDate.setHours(0, 0, 0, 0);
+      
+      const newEndDate = new Date(newStartDate);
+      newEndDate.setDate(newStartDate.getDate() + 7);
+      
+      console.log(`Chargement de nouveaux créneaux du ${newStartDate.toLocaleDateString()} au ${newEndDate.toLocaleDateString()}`);
+      
+      // Refetch les disponibilités avec la nouvelle plage
+      if (teamMember) {
+        setSelectedDate(newDate);
+        // Utiliser directement les nouvelles dates
+        fetchAvailabilityWithDates(teamMember, newStartDate, newEndDate);
+        return;
+      }
+    } else if (newDate < dateRange.start) {
+      // Si on va en arrière avant la date de début
+      const newStartDate = new Date(newDate);
+      newStartDate.setHours(0, 0, 0, 0);
+      
+      const newEndDate = new Date(newStartDate);
+      newEndDate.setDate(newStartDate.getDate() + 7);
+      
+      console.log(`Chargement de nouveaux créneaux du ${newStartDate.toLocaleDateString()} au ${newEndDate.toLocaleDateString()}`);
+      
+      // Refetch les disponibilités avec la nouvelle plage
+      if (teamMember) {
+        setSelectedDate(newDate);
+        // Utiliser directement les nouvelles dates
+        fetchAvailabilityWithDates(teamMember, newStartDate, newEndDate);
+        return;
+      }
+    } else {
+      // Sinon, on filtre simplement les créneaux existants
+      filterTimeSlotsByDate(allTimeSlots, newDate);
     }
     
-    // Trier les créneaux par date/heure
-    return slots.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    setSelectedDate(newDate);
+    setSelectedSlot(null); // Réinitialiser le créneau sélectionné
+  };
+
+  // Formater la date pour l'affichage
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
   };
 
   // Handler pour la sélection d'un créneau
@@ -275,6 +333,32 @@ export default function EmployeeAvailabilityPage({
               )}
             </header>
 
+            {/* Navigateur de dates */}
+            <div className="flex justify-between items-center mb-6 bg-gray-100 dark:bg-zinc-800 p-4 rounded-lg">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => changeDate(-1)}
+                disabled={selectedDate <= new Date()}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Jour précédent
+              </Button>
+              
+              <h2 className="text-lg font-medium">
+                {formatDate(selectedDate)}
+              </h2>
+              
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => changeDate(1)}
+              >
+                Jour suivant
+                <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+              </Button>
+            </div>
+
             {loading ? (
               <div className="flex justify-center items-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#7DF9FF]"></div>
@@ -282,28 +366,35 @@ export default function EmployeeAvailabilityPage({
             ) : timeSlots.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-muted-foreground">Aucun créneau disponible pour le moment.</p>
-                <p className="text-muted-foreground">Veuillez réessayer ultérieurement ou contacter directement notre équipe.</p>
+                <p className="text-muted-foreground">Aucun créneau disponible pour cette journée.</p>
+                <p className="text-muted-foreground">Essayez un autre jour ou contactez directement notre équipe.</p>
               </div>
             ) : (
               <>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-                  {timeSlots.map((slot) => (
-                    <Card
-                      key={slot.id}
-                      className={`cursor-pointer transition-colors ${
-                        selectedSlot === slot.id 
-                          ? "border-2 border-[#7DF9FF] bg-[#7DF9FF]/5" 
-                          : "hover:bg-gray-50 dark:hover:bg-zinc-900"
-                      }`}
-                      onClick={() => handleSlotSelect(slot.id)}
-                    >
-                      <CardContent className="p-4 flex items-center gap-3">
-                        <CalendarClock className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-sm">{slot.formattedTime}</span>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {timeSlots.map((slot) => {
+                    // Extraire seulement l'heure et les minutes à partir de formattedTime
+                    const timeString = slot.formattedTime.split(" — ")[1];
+                    // Si le format est "HH:MM - HH:MM", on prend juste la première partie
+                    const startTime = timeString.split(" - ")[0];
+                    
+                    return (
+                      <Card
+                        key={slot.id}
+                        className={`cursor-pointer transition-colors ${
+                          selectedSlot === slot.id 
+                            ? "border-2 border-[#7DF9FF] bg-[#7DF9FF]/5" 
+                            : "hover:bg-gray-50 dark:hover:bg-zinc-900"
+                        }`}
+                        onClick={() => handleSlotSelect(slot.id)}
+                      >
+                        <CardContent className="p-4 flex items-center justify-center gap-3">
+                          <CalendarClock className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-sm font-medium">{startTime}</span>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
 
                 <div className="flex justify-center mt-8">
