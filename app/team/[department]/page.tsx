@@ -1,7 +1,8 @@
 import CardGrid from "@/components/kokonutui/card-grid"
+import { Params } from "next/dist/shared/lib/router/utils/route-matcher"
 
 interface TeamDepartmentPageProps {
-  params: {
+  params: Params & {
     department: string
   }
 }
@@ -39,7 +40,7 @@ export default async function TeamDepartmentPage({
           <CardGrid
             departmentFilter={department}
             gridTitle={`Équipe ${displayDepartment}`}
-            gridDescription="Cliquez sur un membre de l'équipe pour démarrer une session Google Meet"
+            gridDescription="Cliquez sur un membre de l&apos;équipe pour démarrer une session Google Meet"
           />
         </div>
       </div>
