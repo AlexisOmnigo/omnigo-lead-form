@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       description,
       attendees = [],
       location = "",
-      timeZone = "Europe/Paris"
+      timeZone = "America/Montreal"
     } = await request.json();
 
     if (!calendarId || !start || !end) {

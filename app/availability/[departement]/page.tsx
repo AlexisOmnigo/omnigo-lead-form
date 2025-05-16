@@ -147,7 +147,7 @@ export default function EmployeeAvailabilityPage({
           calendarId,
           startDate,
           endDate,
-          timeZone: 'Europe/Paris',
+          timeZone: 'America/Montreal',
           duration: 30 // durée en minutes
         })
       });
@@ -372,7 +372,7 @@ ${additionalInfo || "Aucune information complémentaire"}
           summary,
           description,
           attendees: attendeesList,
-          timeZone: 'Europe/Paris'
+          timeZone: 'America/Montreal'
         })
       });
       

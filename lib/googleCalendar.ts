@@ -39,7 +39,7 @@ export const getAvailableTimeSlots = async (
   startDate: Date,
   endDate: Date,
   durationMinutes: number = 30,
-  timeZone: string = 'Europe/Paris'
+  timeZone: string = 'America/Montreal'
 ) => {
   try {
     console.log(`Récupération des disponibilités pour: ${calendarId}`);
@@ -99,7 +99,7 @@ export const createCalendarEvent = async (
   startDateTime: string,
   endDateTime: string,
   attendees: string[] = [],
-  timeZone: string = 'Europe/Paris'
+  timeZone: string = 'America/Montreal'
 ) => {
   try {
     // Utiliser le compte de service pour se faire passer pour l'utilisateur du calendrier
@@ -226,7 +226,7 @@ export const generateAvailableTimeSlots = (
   endDate: Date,
   busyTimes: Array<{ start: string, end: string }>,
   durationMinutes: number = 30,
-  timeZone: string = 'Europe/Paris'
+  timeZone: string = 'America/Montreal'
 ) => {
   console.log(`Génération des créneaux disponibles avec fuseau horaire: ${timeZone}`);
   console.log(`Date de début: ${startDate.toISOString()}`);
@@ -330,7 +330,7 @@ export const generateMockTimeSlots = (
   startDate: Date,
   endDate: Date,
   durationMinutes: number = 30,
-  timeZone: string = 'Europe/Paris'
+  timeZone: string = 'America/Montreal'
 ) => {
   const slots = [];
   const currentDate = new Date(startDate);

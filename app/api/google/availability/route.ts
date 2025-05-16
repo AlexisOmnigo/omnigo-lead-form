@@ -3,7 +3,7 @@ import { getAvailableTimeSlots } from '@/lib/googleCalendar';
 
 export async function POST(request: Request) {
   try {
-    const { calendarId, startDate, endDate, timeZone = 'Europe/Paris', duration = 30 } = await request.json();
+    const { calendarId, startDate, endDate, timeZone = '/Paris', duration = 30 } = await request.json();
     
     if (!calendarId || !startDate || !endDate) {
       return NextResponse.json({ 
