@@ -5,32 +5,23 @@ import path from 'path';
 // Configurer le client OAuth avec le compte de service pour Google Calendar
 export const getOAuth2Client = (calendarId: string) => {
   try {
-    // Utiliser un chemin relatif au lieu d'un chemin absolu
-    const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || path.join(process.cwd(), '.key.json');
+    // Utiliser les variables d'environnement directement
+    console.log(`Configuration du client OAuth pour: ${calendarId}`);
     
-    console.log(`Tentative de lecture du fichier de clé: ${keyPath}`);
-    
-    // Vérifier si le fichier existe
-    if (!fs.existsSync(keyPath)) {
-      console.error(`Le fichier de clé n'existe pas à l'emplacement: ${keyPath}`);
-      throw new Error(`Fichier de clé introuvable: ${keyPath}`);
+    // Vérifier si les variables d'environnement nécessaires sont présentes
+    if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+      console.error('Variables d\'environnement Google manquantes');
+      throw new Error('Configuration Google incomplète. Vérifiez les variables d\'environnement.');
     }
     
-    // Lire le fichier de clé JSON
-    const keyContent = fs.readFileSync(keyPath, 'utf8');
-    const credentials = JSON.parse(keyContent);
-    
-    // Utiliser directement l'email de l'employé (calendarId)
-    console.log(`Accès au calendrier de: ${calendarId}`);
-    
     // S'assurer que les scopes sont correctement formatés
-    const scopes = (process.env.GCALENDAR_SCOPES || '').split(',').map(scope => scope.trim());
+    const scopes = (process.env.GCALENDAR_SCOPES || 'https://www.googleapis.com/auth/calendar').split(',').map(scope => scope.trim());
     
     // Créer un client JWT avec le compte de service
     const jwtClient = new google.auth.JWT(
-      credentials.client_email,
+      serviceAccount.client_email,
       undefined,
-      credentials.private_key,
+      serviceAccount.private_key,
       scopes,
       calendarId // Utilisateur à impersonifier = email de l'employé
     );
@@ -74,15 +65,17 @@ export const getAvailableTimeSlots = async (
       const busySlots = freeBusyResponse.data.calendars?.[calendarId]?.busy || [];
       console.log(`${busySlots.length} périodes occupées trouvées pour ${calendarId}`);
       
-      // Convertir les périodes occupées au format attendu
-      const busyTimes = busySlots.map(slot => ({
-        start: slot.start,
-        end: slot.end
-      }));
+      // Convertir les périodes occupées au format attendu et s'assurer qu'elles ont des valeurs non-null
+      const busyTimes = busySlots
+        .filter(slot => slot.start && slot.end) // Filtrer les slots avec valeurs nulles
+        .map(slot => ({
+          start: slot.start!,
+          end: slot.end!
+        }));
       
       // Générer les créneaux disponibles
       return generateAvailableTimeSlots(startDate, endDate, busyTimes, durationMinutes, timeZone);
-    } catch (apiError) {
+    } catch (apiError: any) {
       console.error(`Erreur API Google Calendar: ${apiError.message}`, apiError);
       throw apiError;
     }
@@ -342,4 +335,19 @@ export const generateMockTimeSlots = (
   }
   
   return slots;
+};
+
+// Définition de l'objet serviceAccount à partir des variables d'environnement
+const serviceAccount = {
+  type: process.env.GOOGLE_SERVICE_ACCOUNT_TYPE || "service_account",
+  project_id: process.env.GOOGLE_PROJECT_ID || "",
+  private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID || "",
+  private_key: process.env.GOOGLE_PRIVATE_KEY || "",
+  client_email: process.env.GOOGLE_CLIENT_EMAIL || "",
+  client_id: process.env.GOOGLE_CLIENT_ID || "",
+  auth_uri: process.env.GOOGLE_AUTH_URI || "https://accounts.google.com/o/oauth2/auth",
+  token_uri: process.env.GOOGLE_TOKEN_URI || "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: process.env.GOOGLE_AUTH_PROVIDER_CERT_URL || "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: process.env.GOOGLE_CLIENT_CERT_URL || "",
+  universe_domain: "googleapis.com"
 }; 
