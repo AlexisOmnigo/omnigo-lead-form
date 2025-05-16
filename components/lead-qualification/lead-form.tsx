@@ -238,21 +238,14 @@ export default function LeadQualificationForm() {
         return !formData.clientType
       case 2:
         if (formData.clientType === "existing") {
-          return !formData.department
+          return !formData.department || !formData.firstName || !formData.lastName || !formData.email || !formData.company || !formData.phone
         } else {
           return !formData.firstName || !formData.lastName || !formData.email
         }
       case 3:
         if (formData.clientType === "existing") {
-          // Pour les clients existants, vérifier les questions spécifiques au département
-          if (formData.department === "Marketing") {
-            return formData.marketingGoals.length === 0
-          } else if (formData.department === "Ventes") {
-            return formData.salesGoals.length === 0
-          } else if (formData.department === "Développement") {
-            return !formData.developmentType
-          }
-          return false
+          // Simplifier l'étape pour les clients existants - suppression des questions par département
+          return false // Le champ additionalInfo est facultatif
         } else {
           // Pour les nouveaux clients
           return !formData.department || !formData.company || !formData.companySize || !formData.industry
@@ -313,21 +306,83 @@ export default function LeadQualificationForm() {
         if (formData.clientType === "existing") {
           return (
             <div className="space-y-4">
-              <CardTitle>Quel département souhaitez-vous contacter ?</CardTitle>
+              <CardTitle>Vos informations de contact</CardTitle>
               <CardDescription>
-                Nous vous mettrons en relation avec les experts du département sélectionné.
+                Merci de nous fournir vos informations de contact pour que nous puissions vous inclure dans le rendez-vous.
               </CardDescription>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Prénom *</Label>
+                  <Input
+                    id="firstName"
+                    placeholder="Prénom"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Nom *</Label>
+                  <Input
+                    id="lastName"
+                    placeholder="Nom"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@exemple.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="company">Entreprise *</Label>
+                  <Input
+                    id="company"
+                    placeholder="Nom de votre entreprise"
+                    value={formData.company}
+                    onChange={(e) => handleInputChange("company", e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Téléphone *</Label>
+                  <Input
+                    id="phone"
+                    placeholder="+33 6 12 34 56 78"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange("phone", e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              
               <div className="grid grid-cols-1 gap-4 pt-2">
-                <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
-                  <SelectTrigger className="dark:bg-zinc-950 bg-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
-                    <SelectValue placeholder="Sélectionnez un département" />
-                  </SelectTrigger>
-                  <SelectContent className="dark:bg-zinc-950 bg-white">
-                    <SelectItem value="Marketing" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800" >Marketing</SelectItem>
-                    <SelectItem value="Ventes" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Ventes</SelectItem>
-                    <SelectItem value="Développement" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Développement</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Département à contacter *</Label>
+                  <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
+                    <SelectTrigger className="dark:bg-zinc-950 bg-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
+                      <SelectValue placeholder="Sélectionnez un département" />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-zinc-950 bg-white">
+                      <SelectItem value="Marketing" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800" >Marketing</SelectItem>
+                      <SelectItem value="Ventes" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Ventes</SelectItem>
+                      <SelectItem value="Développement" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Développement</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           )
@@ -396,121 +451,25 @@ export default function LeadQualificationForm() {
         }
       case 3:
         if (formData.clientType === "existing") {
-          // Questions spécifiques selon le département pour les clients existants
-          if (formData.department === "Marketing") {
-            return (
-              <div className="space-y-4">
-                <CardTitle>Vos objectifs marketing</CardTitle>
-                <CardDescription>
-                  Quels sont vos principaux objectifs en termes de marketing digital ?
-                </CardDescription>
-                <div className="grid grid-cols-1 gap-2 pt-2">
-                  {["Augmenter la notoriété de marque", "Générer des leads", "Booster les ventes en ligne", "Améliorer l&apos;engagement sur les réseaux", "Refonte de stratégie", "Création de contenu"].map((goal) => (
-                    <div key={goal} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={goal.replace(/\s+/g, '-').toLowerCase()}
-                        checked={formData.marketingGoals.includes(goal)}
-                        onChange={(e) => handleCheckboxChange("marketingGoals", goal, e.target.checked)}
-                        className="h-4 w-4 border-gray-300 rounded text-[#7DF9FF] focus:ring-[#7DF9FF]"
-                      />
-                      <Label htmlFor={goal.replace(/\s+/g, '-').toLowerCase()} className="cursor-pointer">{goal}</Label>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-2 mt-4">
-                  <Label htmlFor="additionalInfo">Informations complémentaires</Label>
-                  <Textarea
-                    id="additionalInfo"
-                    placeholder="Précisez vos besoins marketing spécifiques..."
-                    value={formData.additionalInfo}
-                    onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
-                    rows={4}
-                  />
-                </div>
+          // Simplifier l'étape pour les clients existants - suppression des questions par département
+          return (
+            <div className="space-y-4">
+              <CardTitle>Informations sur le rendez-vous</CardTitle>
+              <CardDescription>
+                Parlez-nous brièvement du sujet que vous souhaitez aborder lors de ce rendez-vous.
+              </CardDescription>
+              <div className="space-y-2">
+                <Label htmlFor="additionalInfo">Sujet du rendez-vous</Label>
+                <Textarea
+                  id="additionalInfo"
+                  placeholder="Décrivez le sujet que vous souhaitez aborder, vos questions ou besoins spécifiques..."
+                  value={formData.additionalInfo}
+                  onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
+                  rows={6}
+                />
               </div>
-            );
-          } else if (formData.department === "Ventes") {
-            return (
-              <div className="space-y-4">
-                <CardTitle>Vos objectifs commerciaux</CardTitle>
-                <CardDescription>
-                  Quels sont vos principaux objectifs en termes de ventes ?
-                </CardDescription>
-                <div className="grid grid-cols-1 gap-2 pt-2">
-                  {["Augmenter le CA", "Diversifier la clientèle", "Accélérer le cycle de vente", "Former l&apos;équipe commerciale", "Optimiser la prospection", "Améliorer le CRM"].map((goal) => (
-                    <div key={goal} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={goal.replace(/\s+/g, '-').toLowerCase()}
-                        checked={formData.salesGoals.includes(goal)}
-                        onChange={(e) => handleCheckboxChange("salesGoals", goal, e.target.checked)}
-                        className="h-4 w-4 border-gray-300 rounded text-[#7DF9FF] focus:ring-[#7DF9FF]"
-                      />
-                      <Label htmlFor={goal.replace(/\s+/g, '-').toLowerCase()} className="cursor-pointer">{goal}</Label>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-2 mt-4">
-                  <Label htmlFor="additionalInfo">Informations complémentaires</Label>
-                  <Textarea
-                    id="additionalInfo"
-                    placeholder="Précisez vos besoins commerciaux spécifiques..."
-                    value={formData.additionalInfo}
-                    onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
-                    rows={4}
-                  />
-                </div>
-              </div>
-            );
-          } else if (formData.department === "Développement") {
-            return (
-              <div className="space-y-4">
-                <CardTitle>Votre projet de développement</CardTitle>
-                <CardDescription>
-                  Quel type de développement vous intéresse ?
-                </CardDescription>
-                <RadioGroup
-                  value={formData.developmentType}
-                  onValueChange={(value) => handleInputChange("developmentType", value)}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2"
-                >
-                  {(["Site vitrine", "E-commerce", "Application web", "Application mobile", "Autre"] as const).map((type) => (
-                    <div key={type}>
-                      <RadioGroupItem value={type} id={type.replace(/\s+/g, '-').toLowerCase()} className="peer sr-only" />
-                      <Label
-                        htmlFor={type.replace(/\s+/g, '-').toLowerCase()}
-                        className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
-                      >
-                        <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{type}</span>
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                
-                <div className="space-y-2 mt-4">
-                  <Label htmlFor="developmentTech">Technologies préférées (optionnel)</Label>
-                  <Input
-                    id="developmentTech"
-                    placeholder="Ex: React, Node.js, WordPress..."
-                    value={formData.developmentTech}
-                    onChange={(e) => handleInputChange("developmentTech", e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2 mt-4">
-                  <Label htmlFor="additionalInfo">Informations complémentaires</Label>
-                  <Textarea
-                    id="additionalInfo"
-                    placeholder="Décrivez votre projet ou vos besoins spécifiques..."
-                    value={formData.additionalInfo}
-                    onChange={(e) => handleInputChange("additionalInfo", e.target.value)}
-                    rows={4}
-                  />
-                </div>
-              </div>
-            );
-          }
+            </div>
+          );
         } else {
           // Informations sur l'entreprise pour les nouveaux clients
         return (
@@ -821,7 +780,7 @@ export default function LeadQualificationForm() {
       <CardContent>{renderStepContent()}</CardContent>
       <CardFooter className="flex justify-between">
         {currentStep > 1 ? (
-          <Button variant="outline" onClick={prevStep}>
+          <Button variant="outline" onClick={prevStep} className="cursor-pointer">
             Retour
           </Button>
         ) : (
