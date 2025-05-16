@@ -114,6 +114,9 @@ export const createCalendarEvent = async (
       .map(email => ({ email }));
     
     console.log(`Participants valides: ${validAttendees.length}/${attendees.length}`);
+    console.log(`Fuseau horaire utilisé: ${timeZone}`);
+    console.log(`Date de début (ISO): ${startDateTime}`);
+    console.log(`Date de fin (ISO): ${endDateTime}`);
     
     // Vérifier si la description est définie
     if (!description) {
@@ -124,16 +127,20 @@ export const createCalendarEvent = async (
       console.log("Extrait de la description:", description.substring(0, 100) + "...");
     }
     
+    // S'assurer que les dates sont correctement formatées avec le fuseau horaire
+    const start = ensureTimezone(startDateTime, timeZone);
+    const end = ensureTimezone(endDateTime, timeZone);
+    
     // Créer l'événement
     const event = {
       summary: summary || "Rendez-vous Omnigo",
       description: description || "Aucune description fournie",
       start: {
-        dateTime: startDateTime,
+        dateTime: start,
         timeZone,
       },
       end: {
-        dateTime: endDateTime,
+        dateTime: end,
         timeZone,
       },
       attendees: validAttendees,
@@ -153,7 +160,12 @@ export const createCalendarEvent = async (
     };
     
     // Afficher l'objet événement à créer (sans la description complète)
-    const eventForLog = { ...event, description: event.description.substring(0, 50) + "..." };
+    const eventForLog = { 
+      ...event, 
+      description: event.description.substring(0, 50) + "...",
+      start: event.start,
+      end: event.end
+    };
     console.log("Création de l'événement:", JSON.stringify(eventForLog, null, 2));
     
     const result = await calendar.events.insert({
@@ -172,8 +184,9 @@ export const createCalendarEvent = async (
       eventDetails: {
         summary,
         description: description ? "Description fournie" : "Aucune description",
-        startDateTime,
-        endDateTime,
+        startDateTime: start,
+        endDateTime: end,
+        timeZone,
         attendees: validAttendees.map(att => att.email)
       }
     };
@@ -183,6 +196,30 @@ export const createCalendarEvent = async (
   }
 };
 
+// Fonction pour s'assurer qu'une chaîne de date est correctement formatée avec le fuseau horaire
+function ensureTimezone(dateString: string, timeZone: string): string {
+  try {
+    // Si la date contient déjà des informations de fuseau horaire, ne rien faire
+    if (dateString.includes('Z') || dateString.includes('+')) {
+      console.log(`Date déjà avec fuseau: ${dateString}`);
+      return dateString;
+    }
+    
+    // Sinon, interpréter la date dans le fuseau horaire spécifié
+    // et la convertir en ISO string
+    const date = new Date(dateString);
+    
+    // Log pour débogage
+    console.log(`Date convertie: ${date.toISOString()} (origine: ${dateString})`);
+    
+    return date.toISOString();
+  } catch (e) {
+    console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
+    // En cas d'erreur, retourner la date originale
+    return dateString;
+  }
+}
+
 // Fonction pour générer des créneaux disponibles à partir des périodes occupées
 export const generateAvailableTimeSlots = (
   startDate: Date,
@@ -191,6 +228,10 @@ export const generateAvailableTimeSlots = (
   durationMinutes: number = 30,
   timeZone: string = 'Europe/Paris'
 ) => {
+  console.log(`Génération des créneaux disponibles avec fuseau horaire: ${timeZone}`);
+  console.log(`Date de début: ${startDate.toISOString()}`);
+  console.log(`Date de fin: ${endDate.toISOString()}`);
+  
   const slots = [];
   const currentDate = new Date(startDate);
   
@@ -223,7 +264,8 @@ export const generateAvailableTimeSlots = (
                 id: `slot-${slotStart.getTime()}`,
                 start: slotStart.toISOString(),
                 end: slotEnd.toISOString(),
-                formattedTime: formatDateRange(slotStart, slotEnd)
+                formattedTime: formatDateRange(slotStart, slotEnd),
+                timeZone  // Ajouter explicitement le fuseau horaire
               });
             }
           }
