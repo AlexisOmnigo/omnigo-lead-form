@@ -51,9 +51,10 @@ export default function CardGridItem({
       phone: searchParams.get("phone") || "",
       company: searchParams.get("company") || "",
       department: searchParams.get("department") || "",
-      info: searchParams.get("additionalInfo") || "",
+      additionalInfo: searchParams.get("info") || "",
     }
     
+    console.log("Informations client récupérées dans card-grid:", params);
     setClientInfo(params)
   }, [searchParams])
 
@@ -69,8 +70,24 @@ export default function CardGridItem({
     
     // Ajouter les informations du client si disponibles
     Object.entries(clientInfo).forEach(([key, value]) => {
-      if (value) params.append(key, value)
-    })
+      // Convertir les clés pour correspondre aux noms attendus dans la page de disponibilité
+      const paramMap: Record<string, string> = {
+        'name': 'name',
+        'email': 'email',
+        'phone': 'phone',
+        'company': 'company',
+        'department': 'department',
+        'additionalInfo': 'info', // Correction : additionalInfo devient info
+      };
+      
+      // Utiliser la clé mappée ou la clé originale si pas de mapping
+      const paramKey = paramMap[key] || key;
+      
+      if (value) {
+        console.log(`Ajout du paramètre client: ${paramKey} = ${value}`);
+        params.append(paramKey, value);
+      }
+    });
     
     // Déterminer le département à partir du rôle ou du département
     let deptParam = ""

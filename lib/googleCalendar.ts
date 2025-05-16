@@ -92,6 +92,12 @@ export const getAvailableTimeSlots = async (
   }
 };
 
+// Fonction utilitaire pour valider les adresses email
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
 // Créer un événement dans Google Calendar avec une visioconférence
 export const createCalendarEvent = async (
   calendarId: string,
@@ -109,10 +115,26 @@ export const createCalendarEvent = async (
     // Initialiser la connexion au calendrier
     const calendar = google.calendar({ version: 'v3', auth });
     
+    // Filtrer les participants pour ne garder que les emails valides
+    const validAttendees = attendees
+      .filter(email => email && typeof email === 'string' && isValidEmail(email))
+      .map(email => ({ email }));
+    
+    console.log(`Participants valides: ${validAttendees.length}/${attendees.length}`);
+    
+    // Vérifier si la description est définie
+    if (!description) {
+      console.warn("Description non fournie pour l'événement");
+    } else {
+      console.log(`Description reçue (${description.length} caractères)`);
+      // Afficher un extrait pour débogage
+      console.log("Extrait de la description:", description.substring(0, 100) + "...");
+    }
+    
     // Créer l'événement
     const event = {
-      summary,
-      description,
+      summary: summary || "Rendez-vous Omnigo",
+      description: description || "Aucune description fournie",
       start: {
         dateTime: startDateTime,
         timeZone,
@@ -121,7 +143,7 @@ export const createCalendarEvent = async (
         dateTime: endDateTime,
         timeZone,
       },
-      attendees: attendees.map(email => ({ email })),
+      attendees: validAttendees,
       reminders: {
         useDefault: false,
         overrides: [
@@ -137,6 +159,10 @@ export const createCalendarEvent = async (
       }
     };
     
+    // Afficher l'objet événement à créer (sans la description complète)
+    const eventForLog = { ...event, description: event.description.substring(0, 50) + "..." };
+    console.log("Création de l'événement:", JSON.stringify(eventForLog, null, 2));
+    
     const result = await calendar.events.insert({
       calendarId,
       requestBody: event,
@@ -144,16 +170,18 @@ export const createCalendarEvent = async (
       sendUpdates: 'all'
     });
     
+    console.log("Événement créé avec succès, ID:", result.data.id);
+    
     return {
       success: true,
       eventId: result.data.id,
       meetLink: result.data.conferenceData?.entryPoints?.[0]?.uri || null,
       eventDetails: {
         summary,
-        description,
+        description: description ? "Description fournie" : "Aucune description",
         startDateTime,
         endDateTime,
-        attendees
+        attendees: validAttendees.map(att => att.email)
       }
     };
   } catch (error) {

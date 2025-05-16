@@ -20,6 +20,14 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
+    // Log des informations reçues pour débogage
+    console.log("=== CRÉATION D'ÉVÉNEMENT ===");
+    console.log(`CalendarID: ${calendarId}`);
+    console.log(`Summary: ${summary}`);
+    console.log(`Attendees: ${JSON.stringify(attendees)}`);
+    console.log(`Description: ${description ? description.substring(0, 100) + '...' : 'Non fournie'}`);
+    console.log("===========================");
+
     // Utiliser la fonction mise à jour pour créer l'événement
     const result = await createCalendarEvent(
       calendarId,

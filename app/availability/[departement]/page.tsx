@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CalendarClock, ArrowLeft, Calendar } from "lucide-react"
+import { CalendarClock, ArrowLeft, Calendar, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 // Type pour les créneaux horaires
@@ -43,6 +43,25 @@ export default function EmployeeAvailabilityPage({
   const userDepartment = searchParams.get("department") || "";
   const additionalInfo = searchParams.get("info") || "";
 
+  // Afficher les informations récupérées dans la console pour débogage
+  useEffect(() => {
+    console.log("=== INFORMATIONS CLIENT RÉCUPÉRÉES ===");
+    console.log(`Nom: ${userName}`);
+    console.log(`Email: ${userEmail}`);
+    console.log(`Téléphone: ${userPhone}`);
+    console.log(`Entreprise: ${userCompany}`);
+    console.log(`Département: ${userDepartment}`);
+    console.log(`Informations complémentaires: ${additionalInfo}`);
+    console.log("=======================================");
+    
+    // Afficher tous les paramètres d'URL pour vérification
+    console.log("=== TOUS LES PARAMÈTRES D'URL ===");
+    searchParams.forEach((value, key) => {
+      console.log(`${key}: ${value}`);
+    });
+    console.log("=================================");
+  }, [searchParams]);
+
   // État pour les créneaux horaires et le membre de l'équipe sélectionné
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [allTimeSlots, setAllTimeSlots] = useState<TimeSlot[]>([]);
@@ -56,6 +75,9 @@ export default function EmployeeAvailabilityPage({
     start: new Date(),
     end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   });
+
+  // Variable pour suivre si un changement de date est en cours
+  const [changingDate, setChangingDate] = useState<boolean>(false);
 
   useEffect(() => {
     // Fonction pour récupérer le membre de l'équipe
@@ -77,7 +99,7 @@ export default function EmployeeAvailabilityPage({
   }, [searchParams]);
 
   // Fonction pour récupérer les disponibilités avec des dates spécifiques
-  const fetchAvailabilityWithDates = async (member: TeamMember, start: Date, end: Date) => {
+  const fetchAvailabilityWithDates = async (member: TeamMember, start: Date, end: Date, targetDate: Date) => {
     setLoading(true);
     
     try {
@@ -115,6 +137,7 @@ export default function EmployeeAvailabilityPage({
       console.log('====================');
       
       console.log(`Récupération des disponibilités pour ${calendarId} du ${start.toLocaleDateString()} au ${end.toLocaleDateString()}`);
+      console.log(`Date cible pour l'affichage: ${targetDate.toLocaleDateString()}`);
       
       // Appeler l'API pour récupérer les disponibilités
       const response = await fetch('/api/google/availability', {
@@ -153,8 +176,9 @@ export default function EmployeeAvailabilityPage({
         console.log('=======================');
         
         setAllTimeSlots(data.availableSlots);
-        // Filtrer les créneaux pour la date sélectionnée
-        filterTimeSlotsByDate(data.availableSlots, selectedDate);
+        
+        // Filtrer les créneaux pour la date cible spécifiée
+        filterTimeSlotsByDate(data.availableSlots, targetDate);
       } else {
         console.log('❌ Aucun créneau disponible reçu');
         setAllTimeSlots([]);
@@ -171,7 +195,7 @@ export default function EmployeeAvailabilityPage({
 
   // Fonction pour récupérer les disponibilités avec l'état dateRange actuel
   const fetchAvailability = async (member: TeamMember) => {
-    await fetchAvailabilityWithDates(member, dateRange.start, dateRange.end);
+    await fetchAvailabilityWithDates(member, dateRange.start, dateRange.end, selectedDate);
   };
 
   // Filtrer les créneaux par date
@@ -194,52 +218,65 @@ export default function EmployeeAvailabilityPage({
   };
 
   // Changer de date
-  const changeDate = (daysToAdd: number) => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(selectedDate.getDate() + daysToAdd);
-    
-    // Si la nouvelle date dépasse la plage actuelle, charger plus de dates
-    if (newDate > dateRange.end) {
-      // Définir une nouvelle plage de 7 jours à partir de la date sélectionnée
-      const newStartDate = new Date(newDate);
-      newStartDate.setHours(0, 0, 0, 0);
-      
-      const newEndDate = new Date(newStartDate);
-      newEndDate.setDate(newStartDate.getDate() + 7);
-      
-      console.log(`Chargement de nouveaux créneaux du ${newStartDate.toLocaleDateString()} au ${newEndDate.toLocaleDateString()}`);
-      
-      // Refetch les disponibilités avec la nouvelle plage
-      if (teamMember) {
-        setSelectedDate(newDate);
-        // Utiliser directement les nouvelles dates
-        fetchAvailabilityWithDates(teamMember, newStartDate, newEndDate);
-        return;
-      }
-    } else if (newDate < dateRange.start) {
-      // Si on va en arrière avant la date de début
-      const newStartDate = new Date(newDate);
-      newStartDate.setHours(0, 0, 0, 0);
-      
-      const newEndDate = new Date(newStartDate);
-      newEndDate.setDate(newStartDate.getDate() + 7);
-      
-      console.log(`Chargement de nouveaux créneaux du ${newStartDate.toLocaleDateString()} au ${newEndDate.toLocaleDateString()}`);
-      
-      // Refetch les disponibilités avec la nouvelle plage
-      if (teamMember) {
-        setSelectedDate(newDate);
-        // Utiliser directement les nouvelles dates
-        fetchAvailabilityWithDates(teamMember, newStartDate, newEndDate);
-        return;
-      }
-    } else {
-      // Sinon, on filtre simplement les créneaux existants
-      filterTimeSlotsByDate(allTimeSlots, newDate);
+  const changeDate = async (daysToAdd: number) => {
+    // Ignorer si un changement est déjà en cours
+    if (changingDate) {
+      console.log("Changement de date déjà en cours, ignoré");
+      return;
     }
     
-    setSelectedDate(newDate);
-    setSelectedSlot(null); // Réinitialiser le créneau sélectionné
+    try {
+      setChangingDate(true);
+      
+      // Calculer la nouvelle date
+      const newDate = new Date(selectedDate);
+      newDate.setDate(selectedDate.getDate() + daysToAdd);
+      
+      // Mettre à jour la date sélectionnée immédiatement
+      setSelectedDate(newDate);
+      setSelectedSlot(null); // Réinitialiser le créneau sélectionné
+      
+      // Si la nouvelle date dépasse la plage actuelle, charger plus de dates
+      if (newDate > dateRange.end) {
+        // Définir une nouvelle plage de 7 jours à partir de la date sélectionnée
+        const newStartDate = new Date(newDate);
+        newStartDate.setHours(0, 0, 0, 0);
+        
+        const newEndDate = new Date(newStartDate);
+        newEndDate.setDate(newStartDate.getDate() + 7);
+        
+        console.log(`Chargement de nouveaux créneaux du ${newStartDate.toLocaleDateString()} au ${newEndDate.toLocaleDateString()}`);
+        
+        // Refetch les disponibilités avec la nouvelle plage
+        if (teamMember) {
+          // Utiliser directement les nouvelles dates
+          await fetchAvailabilityWithDates(teamMember, newStartDate, newEndDate, newDate);
+        }
+      } else if (newDate < dateRange.start) {
+        // Si on va en arrière avant la date de début
+        const newStartDate = new Date(newDate);
+        newStartDate.setHours(0, 0, 0, 0);
+        
+        const newEndDate = new Date(newStartDate);
+        newEndDate.setDate(newStartDate.getDate() + 7);
+        
+        console.log(`Chargement de nouveaux créneaux du ${newStartDate.toLocaleDateString()} au ${newEndDate.toLocaleDateString()}`);
+        
+        // Refetch les disponibilités avec la nouvelle plage
+        if (teamMember) {
+          // Utiliser directement les nouvelles dates
+          await fetchAvailabilityWithDates(teamMember, newStartDate, newEndDate, newDate);
+        }
+      } else {
+        // Sinon, on filtre simplement les créneaux existants
+        console.log(`Filtrage des créneaux existants pour ${newDate.toLocaleDateString()}`);
+        filterTimeSlotsByDate(allTimeSlots, newDate);
+      }
+    } catch (error) {
+      console.error("Erreur lors du changement de date:", error);
+    } finally {
+      setChangingDate(false);
+    }
   };
 
   // Formater la date pour l'affichage
@@ -267,18 +304,62 @@ export default function EmployeeAvailabilityPage({
     setLoading(true);
     
     try {
+      // Vérifier si les informations client existent
+      if (!userName || !userEmail) {
+        console.error("Informations client manquantes");
+        console.log("Nom:", userName);
+        console.log("Email:", userEmail);
+        console.log("Téléphone:", userPhone);
+        console.log("Entreprise:", userCompany);
+      }
+      
       // Préparer la description de l'événement avec les informations du formulaire
+      // Utiliser un format plus structuré et visible
       const description = `
-        Informations client :
-        Nom : ${userName}
-        Email : ${userEmail}
-        Téléphone : ${userPhone}
-        Entreprise : ${userCompany}
-        Département : ${userDepartment}
-        
-        Informations complémentaires :
-        ${additionalInfo}
-      `;
+INFORMATIONS CLIENT
+------------------
+Nom: ${userName || "Non spécifié"}
+Email: ${userEmail || "Non spécifié"}
+Téléphone: ${userPhone || "Non spécifié"}
+Entreprise: ${userCompany || "Non spécifié"}
+Département: ${userDepartment || "Non spécifié"}
+
+INFORMATIONS COMPLÉMENTAIRES
+----------------------------
+${additionalInfo || "Aucune information complémentaire"}
+      `.trim();
+      
+      // Afficher la description pour débogage
+      console.log("=== DESCRIPTION DE L'ÉVÉNEMENT ===");
+      console.log(description);
+      console.log("==================================");
+      
+      // Fonction pour valider un email
+      const isValidEmail = (email: string | undefined | null): boolean => {
+        if (!email || typeof email !== 'string') return false;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+      };
+      
+      // Préparer la liste des participants
+      let attendeesList = [];
+      
+      // Ajouter l'email du membre de l'équipe s'il est valide
+      if (isValidEmail(teamMember.email)) {
+        attendeesList.push(teamMember.email);
+      }
+      
+      // Ajouter l'email du client s'il est valide
+      if (isValidEmail(userEmail)) {
+        attendeesList.push(userEmail);
+      }
+      
+      console.log(`Création d'un rendez-vous avec ${attendeesList.length} participants valides`);
+      
+      // Créer un titre plus descriptif pour l'événement
+      const summary = userCompany 
+        ? `Rendez-vous Omnigo avec ${userName} (${userCompany})`
+        : `Rendez-vous Omnigo avec ${userName}`;
       
       // Appeler l'API pour créer l'événement dans Google Calendar
       const response = await fetch('/api/google/create-event', {
@@ -288,9 +369,9 @@ export default function EmployeeAvailabilityPage({
           calendarId: teamMember.email,
           start: selectedTimeSlot.start,
           end: selectedTimeSlot.end,
-          summary: `Rendez-vous Omnigo avec ${userName} (${userCompany})`,
+          summary,
           description,
-          attendees: [userEmail, teamMember.email],
+          attendees: attendeesList,
           timeZone: 'Europe/Paris'
         })
       });
@@ -304,7 +385,7 @@ export default function EmployeeAvailabilityPage({
         // Rediriger vers la page d'accueil
         router.push('/');
       } else {
-        throw new Error(data.error || 'Erreur lors de la création du rendez-vous');
+        throw new Error(data.error || data.details || 'Erreur lors de la création du rendez-vous');
       }
     } catch (error) {
       console.error('Erreur lors de la confirmation du rendez-vous:', error);
@@ -324,14 +405,14 @@ export default function EmployeeAvailabilityPage({
         
         <Card className="w-full max-w-4xl mx-auto border-[#7DF9FF] border-2">
           <CardContent className="p-6">
-            <header className="mb-8 text-center">
+      <header className="mb-8 text-center">
               <h1 className="text-3xl font-bold mb-2">
                 {teamMember ? `Sélectionnez un créneau avec ${teamMember.name}` : 'Chargement...'}
               </h1>
               {teamMember && (
                 <p className="text-muted-foreground">{teamMember.role}</p>
               )}
-            </header>
+      </header>
 
             {/* Navigateur de dates */}
             <div className="flex justify-between items-center mb-6 bg-gray-100 dark:bg-zinc-800 p-4 rounded-lg">
@@ -339,7 +420,7 @@ export default function EmployeeAvailabilityPage({
                 variant="outline"
                 size="sm"
                 onClick={() => changeDate(-1)}
-                disabled={selectedDate <= new Date()}
+                disabled={selectedDate <= new Date() || changingDate}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Jour précédent
@@ -353,9 +434,10 @@ export default function EmployeeAvailabilityPage({
                 variant="outline"
                 size="sm"
                 onClick={() => changeDate(1)}
+                disabled={changingDate}
               >
                 Jour suivant
-                <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
 
@@ -379,25 +461,25 @@ export default function EmployeeAvailabilityPage({
                     const startTime = timeString.split(" - ")[0];
                     
                     return (
-                      <Card
+          <Card
                         key={slot.id}
-                        className={`cursor-pointer transition-colors ${
+            className={`cursor-pointer transition-colors ${
                           selectedSlot === slot.id 
                             ? "border-2 border-[#7DF9FF] bg-[#7DF9FF]/5" 
                             : "hover:bg-gray-50 dark:hover:bg-zinc-900"
-                        }`}
+            }`}
                         onClick={() => handleSlotSelect(slot.id)}
-                      >
+          >
                         <CardContent className="p-4 flex items-center justify-center gap-3">
-                          <CalendarClock className="h-5 w-5 text-muted-foreground" />
+              <CalendarClock className="h-5 w-5 text-muted-foreground" />
                           <span className="text-sm font-medium">{startTime}</span>
-                        </CardContent>
-                      </Card>
+            </CardContent>
+          </Card>
                     );
                   })}
-                </div>
+      </div>
 
-                <div className="flex justify-center mt-8">
+      <div className="flex justify-center mt-8">
                   <Button 
                     className="cursor-pointer bg-[#7DF9FF] hover:bg-[#7DF9FF]/80 text-black"
                     size="lg" 
@@ -410,7 +492,7 @@ export default function EmployeeAvailabilityPage({
                         Veuillez patienter...
                       </>
                     ) : 'Confirmer le rendez-vous'}
-                  </Button>
+        </Button>
                 </div>
               </>
             )}

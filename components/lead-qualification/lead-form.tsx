@@ -166,8 +166,19 @@ export default function LeadQualificationForm() {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 
-      // Redirect immediately to team page with department filter
-      router.push(`/team/${normalizedDepartment}`)
+      // Créer des paramètres d'URL avec les informations client
+      const params = new URLSearchParams();
+      if (formData.firstName && formData.lastName) {
+        params.append('name', `${formData.firstName} ${formData.lastName}`);
+      }
+      if (formData.email) params.append('email', formData.email);
+      if (formData.phone) params.append('phone', formData.phone);
+      if (formData.company) params.append('company', formData.company);
+      if (formData.department) params.append('department', formData.department);
+      if (formData.additionalInfo) params.append('info', formData.additionalInfo);
+
+      // Redirect to team page with department filter and client info
+      router.push(`/team/${normalizedDepartment}?${params.toString()}`);
       return
     }
 
@@ -198,8 +209,19 @@ export default function LeadQualificationForm() {
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 
-      // Redirect immediately to team page with department filter
-      router.push(`/team/${normalizedDepartment}`)
+      // Créer des paramètres d'URL avec les informations client
+      const params = new URLSearchParams();
+      if (formData.firstName && formData.lastName) {
+        params.append('name', `${formData.firstName} ${formData.lastName}`);
+      }
+      if (formData.email) params.append('email', formData.email);
+      if (formData.phone) params.append('phone', formData.phone);
+      if (formData.company) params.append('company', formData.company);
+      if (formData.department) params.append('department', formData.department);
+      if (formData.additionalInfo) params.append('info', formData.additionalInfo);
+
+      // Redirect to team page with department filter and client info
+      router.push(`/team/${normalizedDepartment}?${params.toString()}`);
       return
     }
 
