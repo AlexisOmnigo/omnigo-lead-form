@@ -91,6 +91,44 @@ const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email);
 };
 
+// Fonction pour s'assurer qu'une chaîne de date est correctement formatée avec le fuseau horaire
+function ensureTimezone(dateString: string, timeZone: string): string {
+  try {
+    // Si la date contient déjà des informations de fuseau horaire, préserver le format
+    if (dateString.includes('Z') || dateString.includes('+')) {
+      console.log(`Date déjà avec fuseau: ${dateString}`);
+      return dateString;
+    }
+    
+    // Créer un objet Date à partir de la chaîne
+    const date = new Date(dateString);
+    
+    // Solution compatible avec Google Calendar:
+    // 1. Formatter la date locale sans le Z
+    // 2. Spécifier le fuseau horaire séparément dans l'objet
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    // Format RFC 3339 sans 'Z' à la fin pour indiquer que ce n'est PAS UTC
+    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    
+    console.log(`Date originale: ${dateString}`);
+    console.log(`Date formatée: ${formattedDate}`);
+    console.log(`Fuseau horaire: ${timeZone}`);
+    
+    // La date sans 'Z' et avec timeZone séparé sera interprétée correctement par Google
+    return formattedDate;
+  } catch (e) {
+    console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
+    return dateString;
+  }
+}
+
 // Créer un événement dans Google Calendar avec une visioconférence
 export const createCalendarEvent = async (
   calendarId: string,
@@ -115,8 +153,8 @@ export const createCalendarEvent = async (
     
     console.log(`Participants valides: ${validAttendees.length}/${attendees.length}`);
     console.log(`Fuseau horaire utilisé: ${timeZone}`);
-    console.log(`Date de début (ISO): ${startDateTime}`);
-    console.log(`Date de fin (ISO): ${endDateTime}`);
+    console.log(`Date de début (originale): ${startDateTime}`);
+    console.log(`Date de fin (originale): ${endDateTime}`);
     
     // Vérifier si la description est définie
     if (!description) {
@@ -127,9 +165,11 @@ export const createCalendarEvent = async (
       console.log("Extrait de la description:", description.substring(0, 100) + "...");
     }
     
-    // S'assurer que les dates sont correctement formatées avec le fuseau horaire
+    // S'assurer que les dates sont correctement formatées
     const start = ensureTimezone(startDateTime, timeZone);
     const end = ensureTimezone(endDateTime, timeZone);
+    
+    console.log(`ENVIRONNEMENT: ${process.env.NODE_ENV || 'development'}`);
     
     // Créer l'événement
     const event = {
@@ -159,14 +199,11 @@ export const createCalendarEvent = async (
       }
     };
     
-    // Afficher l'objet événement à créer (sans la description complète)
-    const eventForLog = { 
-      ...event, 
+    // Afficher l'objet événement complet pour débogage
+    console.log("Événement à créer:", JSON.stringify({
+      ...event,
       description: event.description.substring(0, 50) + "...",
-      start: event.start,
-      end: event.end
-    };
-    console.log("Création de l'événement:", JSON.stringify(eventForLog, null, 2));
+    }, null, 2));
     
     const result = await calendar.events.insert({
       calendarId,
@@ -176,6 +213,14 @@ export const createCalendarEvent = async (
     });
     
     console.log("Événement créé avec succès, ID:", result.data.id);
+    if (result.data.start) {
+      console.log("Horaire confirmé par Google:", 
+        JSON.stringify({ 
+          start: result.data.start, 
+          end: result.data.end 
+        }, null, 2)
+      );
+    }
     
     return {
       success: true,
@@ -196,47 +241,6 @@ export const createCalendarEvent = async (
   }
 };
 
-// Fonction pour s'assurer qu'une chaîne de date est correctement formatée avec le fuseau horaire
-function ensureTimezone(dateString: string, timeZone: string): string {
-  try {
-    // Si la date contient déjà des informations de fuseau horaire, ne rien faire
-    if (dateString.includes('Z') || dateString.includes('+')) {
-      console.log(`Date déjà avec fuseau: ${dateString}`);
-      return dateString;
-    }
-    
-    // Créer un objet Date à partir de la chaîne
-    const date = new Date(dateString);
-    
-    // IMPORTANT: Ne pas utiliser toISOString() qui convertit toujours en UTC (Z)
-    // Au lieu de cela, retourner le format RFC 3339 attendu par Google Calendar
-    // sans conversion en UTC
-    
-    // Format: YYYY-MM-DDTHH:MM:SS±hh:mm
-    // Nous devons simplement ajouter le fuseau horaire à la fin sans modifier l'heure
-    
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
-    // Format RFC 3339 sans conversion en UTC
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    
-    console.log(`Date formatée sans conversion UTC: ${formattedDate} (origine: ${dateString})`);
-    console.log(`Fuseau horaire appliqué: ${timeZone}`);
-    
-    // Google Calendar accepte ce format avec le fuseau horaire spécifié séparément
-    return formattedDate;
-  } catch (e) {
-    console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
-    // En cas d'erreur, retourner la date originale
-    return dateString;
-  }
-}
-
 // Fonction pour générer des créneaux disponibles à partir des périodes occupées
 export const generateAvailableTimeSlots = (
   startDate: Date,
@@ -248,9 +252,26 @@ export const generateAvailableTimeSlots = (
   console.log(`Génération des créneaux disponibles avec fuseau horaire: ${timeZone}`);
   console.log(`Date de début: ${startDate.toISOString()}`);
   console.log(`Date de fin: ${endDate.toISOString()}`);
+  console.log(`Environnement: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Convertir les périodes occupées en objets Date locaux
+  const busyTimesParsed = busyTimes.map(slot => ({
+    start: new Date(slot.start),
+    end: new Date(slot.end)
+  }));
+  
+  console.log(`Périodes occupées: ${busyTimesParsed.length}`);
+  if (busyTimesParsed.length > 0) {
+    console.log(`Exemple - Première période occupée: ${busyTimesParsed[0].start.toLocaleString()} - ${busyTimesParsed[0].end.toLocaleString()}`);
+  }
   
   const slots = [];
   const currentDate = new Date(startDate);
+  
+  // Calculer le décalage horaire entre UTC et le fuseau souhaité pour compensation
+  // Ceci est crucial pour garantir que les heures sont correctes dans le fuseau de l'utilisateur
+  const userTZOffset = startDate.getTimezoneOffset() * 60000; // en millisecondes
+  console.log(`Décalage du fuseau horaire local: ${userTZOffset / 3600000} heures`);
   
   while (currentDate < endDate) {
     // Ignorer les weekends
@@ -262,8 +283,10 @@ export const generateAvailableTimeSlots = (
       ];
       
       for (const period of workingHours) {
+        console.log(`Génération des créneaux pour la période ${period.start}h-${period.end}h le ${currentDate.toLocaleDateString()}`);
         for (let hour = period.start; hour < period.end; hour++) {
           for (let minute = 0; minute < 60; minute += durationMinutes) {
+            // Créer une date pour ce créneau
             const slotStart = new Date(currentDate);
             slotStart.setHours(hour, minute, 0, 0);
             
@@ -275,14 +298,24 @@ export const generateAvailableTimeSlots = (
               continue;
             }
             
+            // Formatage explicite des heures pour l'API Google sans conversion UTC
+            const slotStartISO = formatDateWithoutConversion(slotStart);
+            const slotEndISO = formatDateWithoutConversion(slotEnd);
+            
             // Vérifier si le créneau est disponible (non occupé)
-            if (isSlotAvailable(slotStart, slotEnd, busyTimes)) {
+            if (isSlotAvailable(slotStart, slotEnd, busyTimesParsed)) {
+              const formattedTime = formatDateRange(slotStart, slotEnd);
+              console.log(`Créneau disponible trouvé: ${formattedTime}`);
+              
               slots.push({
                 id: `slot-${slotStart.getTime()}`,
-                start: slotStart.toISOString(),
-                end: slotEnd.toISOString(),
-                formattedTime: formatDateRange(slotStart, slotEnd),
-                timeZone  // Ajouter explicitement le fuseau horaire
+                start: slotStartISO,
+                end: slotEndISO,
+                formattedTime,
+                timeZone,
+                rawStartTime: `${hour}:${minute.toString().padStart(2, '0')}`,
+                startHour: hour,
+                startMinute: minute
               });
             }
           }
@@ -295,24 +328,46 @@ export const generateAvailableTimeSlots = (
     currentDate.setHours(0, 0, 0, 0);
   }
   
+  console.log(`Nombre total de créneaux disponibles générés: ${slots.length}`);
+  if (slots.length > 0) {
+    console.log(`Premier créneau disponible: ${slots[0].formattedTime}`);
+    console.log(`Heure brute du premier créneau: ${slots[0].rawStartTime}`);
+  }
+  
   return slots;
 };
+
+// Format une date sans conversion en UTC
+function formatDateWithoutConversion(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  // Format RFC 3339 sans 'Z' à la fin
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
 
 // Vérifier si un créneau horaire est disponible
 export const isSlotAvailable = (
   slotStart: Date,
   slotEnd: Date,
-  busyTimes: Array<{ start: string, end: string }>
+  busyTimes: Array<{ start: Date, end: Date }>
 ) => {
   for (const busy of busyTimes) {
-    const busyStart = new Date(busy.start);
-    const busyEnd = new Date(busy.end);
+    // Comparer les timestamps pour éviter les problèmes de fuseau horaire
+    const busyStartTime = busy.start.getTime();
+    const busyEndTime = busy.end.getTime();
+    const slotStartTime = slotStart.getTime();
+    const slotEndTime = slotEnd.getTime();
     
     // Si le créneau chevauche une période occupée, il n'est pas disponible
     if (
-      (slotStart < busyEnd && slotEnd > busyStart) ||
-      (slotStart.getTime() === busyStart.getTime()) ||
-      (slotEnd.getTime() === busyEnd.getTime())
+      (slotStartTime < busyEndTime && slotEndTime > busyStartTime) ||
+      (slotStartTime === busyStartTime) ||
+      (slotEndTime === busyEndTime)
     ) {
       return false;
     }

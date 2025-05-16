@@ -188,7 +188,7 @@ export default function LeadQualificationForm() {
 
       // Store score in localStorage or send to backend
       localStorage.setItem("leadScore", score.toString())
-      
+
       // Afficher le score dans la console pour les nouveaux clients
       console.log("----------------------------------");
       console.log(`Score du prospect: ${score}/100`);
@@ -372,16 +372,16 @@ export default function LeadQualificationForm() {
               <div className="grid grid-cols-1 gap-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="department">Département à contacter *</Label>
-                  <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
+                <Select value={formData.department} onValueChange={(value) => handleInputChange("department", value)}>
                     <SelectTrigger className="dark:bg-zinc-950 bg-white hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
-                      <SelectValue placeholder="Sélectionnez un département" />
-                    </SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez un département" />
+                  </SelectTrigger>
                     <SelectContent className="dark:bg-zinc-950 bg-white">
                       <SelectItem value="Marketing" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800" >Marketing</SelectItem>
                       <SelectItem value="Ventes" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Ventes</SelectItem>
                       <SelectItem value="Développement" className="dark:text-white dark:hover:bg-zinc-800 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800">Développement</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  </SelectContent>
+                </Select>
                 </div>
               </div>
             </div>
