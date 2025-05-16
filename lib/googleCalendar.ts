@@ -205,14 +205,31 @@ function ensureTimezone(dateString: string, timeZone: string): string {
       return dateString;
     }
     
-    // Sinon, interpréter la date dans le fuseau horaire spécifié
-    // et la convertir en ISO string
+    // Créer un objet Date à partir de la chaîne
     const date = new Date(dateString);
     
-    // Log pour débogage
-    console.log(`Date convertie: ${date.toISOString()} (origine: ${dateString})`);
+    // IMPORTANT: Ne pas utiliser toISOString() qui convertit toujours en UTC (Z)
+    // Au lieu de cela, retourner le format RFC 3339 attendu par Google Calendar
+    // sans conversion en UTC
     
-    return date.toISOString();
+    // Format: YYYY-MM-DDTHH:MM:SS±hh:mm
+    // Nous devons simplement ajouter le fuseau horaire à la fin sans modifier l'heure
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    // Format RFC 3339 sans conversion en UTC
+    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    
+    console.log(`Date formatée sans conversion UTC: ${formattedDate} (origine: ${dateString})`);
+    console.log(`Fuseau horaire appliqué: ${timeZone}`);
+    
+    // Google Calendar accepte ce format avec le fuseau horaire spécifié séparément
+    return formattedDate;
   } catch (e) {
     console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
     // En cas d'erreur, retourner la date originale
