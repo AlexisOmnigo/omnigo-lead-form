@@ -23,7 +23,7 @@ export const getOAuth2Client = (calendarId: string) => {
       undefined,
       serviceAccount.private_key,
       scopes,
-      calendarId // Utilisateur à impersonifier = email de l'employé
+      calendarId // Utilisateur à impersonner = email de l'employé
     );
     
     return jwtClient;
@@ -94,35 +94,23 @@ const isValidEmail = (email: string): boolean => {
 // Fonction pour s'assurer qu'une chaîne de date est correctement formatée avec le fuseau horaire
 function ensureTimezone(dateString: string, timeZone: string): string {
   try {
-    // Si la date contient déjà des informations de fuseau horaire, préserver le format
-    if (dateString.includes('Z') || dateString.includes('+')) {
-      console.log(`Date déjà avec fuseau: ${dateString}`);
-      return dateString;
+    const hasTimezoneInfo =
+      dateString.includes('Z') || /[+-]\d{2}:\d{2}$/.test(dateString);
+
+    if (hasTimezoneInfo) {
+      // Convertir la date reçue vers le fuseau horaire spécifié
+      const date = new Date(dateString);
+      const local = date
+        .toLocaleString('sv-SE', { timeZone })
+        .replace(' ', 'T');
+
+      console.log(`Conversion de ${dateString} vers ${local} pour ${timeZone}`);
+      return local;
     }
-    
-    // Créer un objet Date à partir de la chaîne
-    const date = new Date(dateString);
-    
-    // Solution compatible avec Google Calendar:
-    // 1. Formatter la date locale sans le Z
-    // 2. Spécifier le fuseau horaire séparément dans l'objet
-    
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
-    // Format RFC 3339 sans 'Z' à la fin pour indiquer que ce n'est PAS UTC
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    
-    console.log(`Date originale: ${dateString}`);
-    console.log(`Date formatée: ${formattedDate}`);
-    console.log(`Fuseau horaire: ${timeZone}`);
-    
-    // La date sans 'Z' et avec timeZone séparé sera interprétée correctement par Google
-    return formattedDate;
+
+    // La chaîne ne contient pas de fuseau horaire, on la suppose déjà dans le
+    // bon fuseau et on la renvoie telle quelle
+    return dateString;
   } catch (e) {
     console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
     return dateString;
