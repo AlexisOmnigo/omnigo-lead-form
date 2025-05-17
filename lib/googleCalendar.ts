@@ -94,35 +94,18 @@ const isValidEmail = (email: string): boolean => {
 // Fonction pour s'assurer qu'une chaîne de date est correctement formatée avec le fuseau horaire
 function ensureTimezone(dateString: string, timeZone: string): string {
   try {
-    // Si la date contient déjà des informations de fuseau horaire, préserver le format
+    // Si la date contient déjà un fuseau horaire, ne rien changer
     if (dateString.includes('Z') || dateString.includes('+')) {
-      console.log(`Date déjà avec fuseau: ${dateString}`);
       return dateString;
     }
-    
-    // Créer un objet Date à partir de la chaîne
-    const date = new Date(dateString);
-    
-    // Solution compatible avec Google Calendar:
-    // 1. Formatter la date locale sans le Z
-    // 2. Spécifier le fuseau horaire séparément dans l'objet
-    
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
-    // Format RFC 3339 sans 'Z' à la fin pour indiquer que ce n'est PAS UTC
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    
-    console.log(`Date originale: ${dateString}`);
-    console.log(`Date formatée: ${formattedDate}`);
-    console.log(`Fuseau horaire: ${timeZone}`);
-    
-    // La date sans 'Z' et avec timeZone séparé sera interprétée correctement par Google
-    return formattedDate;
+
+    // Convertir la date en UTC en tenant compte du fuseau souhaité
+    const localDate = new Date(dateString);
+    const tzDate = new Date(localDate.toLocaleString('en-US', { timeZone }));
+    const offsetMs = localDate.getTime() - tzDate.getTime();
+    const utcDate = new Date(localDate.getTime() + offsetMs);
+
+    return utcDate.toISOString();
   } catch (e) {
     console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
     return dateString;
