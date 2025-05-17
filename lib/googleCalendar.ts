@@ -92,37 +92,49 @@ const isValidEmail = (email: string): boolean => {
 };
 
 // Fonction pour s'assurer qu'une chaîne de date est correctement formatée avec le fuseau horaire
+// Calcule le décalage (en millisecondes) entre UTC et le fuseau spécifié
+export function getOffsetForTimezone(date: Date, timeZone: string): number {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    hour12: false,
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+  const parts: Record<string, string> = {};
+  for (const p of dtf.formatToParts(date)) {
+    if (p.type !== 'literal') {
+      parts[p.type] = p.value;
+    }
+  }
+  const asUTC = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour),
+    Number(parts.minute),
+    Number(parts.second)
+  );
+  return asUTC - date.getTime();
+}
+
+// Fonction pour convertir une date sans fuseau horaire vers l'UTC souhaité
 function ensureTimezone(dateString: string, timeZone: string): string {
   try {
-    // Si la date contient déjà des informations de fuseau horaire, préserver le format
+    // Si la date contient déjà un fuseau horaire, ne rien changer
     if (dateString.includes('Z') || dateString.includes('+')) {
-      console.log(`Date déjà avec fuseau: ${dateString}`);
       return dateString;
     }
-    
-    // Créer un objet Date à partir de la chaîne
-    const date = new Date(dateString);
-    
-    // Solution compatible avec Google Calendar:
-    // 1. Formatter la date locale sans le Z
-    // 2. Spécifier le fuseau horaire séparément dans l'objet
-    
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
-    // Format RFC 3339 sans 'Z' à la fin pour indiquer que ce n'est PAS UTC
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    
-    console.log(`Date originale: ${dateString}`);
-    console.log(`Date formatée: ${formattedDate}`);
-    console.log(`Fuseau horaire: ${timeZone}`);
-    
-    // La date sans 'Z' et avec timeZone séparé sera interprétée correctement par Google
-    return formattedDate;
+
+    // Traiter la chaîne comme si elle était en UTC pour commencer
+    const naive = new Date(dateString + 'Z');
+    const offsetMs = getOffsetForTimezone(naive, timeZone);
+    const utcDate = new Date(naive.getTime() - offsetMs);
+
+    return utcDate.toISOString();
   } catch (e) {
     console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
     return dateString;
@@ -254,7 +266,7 @@ export const generateAvailableTimeSlots = (
   console.log(`Date de fin: ${endDate.toISOString()}`);
   console.log(`Environnement: ${process.env.NODE_ENV || 'development'}`);
   
-  // Convertir les périodes occupées en objets Date locaux
+  // Convertir les périodes occupées en Dates UTC
   const busyTimesParsed = busyTimes.map(slot => ({
     start: new Date(slot.start),
     end: new Date(slot.end)
@@ -267,11 +279,6 @@ export const generateAvailableTimeSlots = (
   
   const slots = [];
   const currentDate = new Date(startDate);
-  
-  // Calculer le décalage horaire entre UTC et le fuseau souhaité pour compensation
-  // Ceci est crucial pour garantir que les heures sont correctes dans le fuseau de l'utilisateur
-  const userTZOffset = startDate.getTimezoneOffset() * 60000; // en millisecondes
-  console.log(`Décalage du fuseau horaire local: ${userTZOffset / 3600000} heures`);
   
   while (currentDate < endDate) {
     // Ignorer les weekends
@@ -286,31 +293,36 @@ export const generateAvailableTimeSlots = (
         console.log(`Génération des créneaux pour la période ${period.start}h-${period.end}h le ${currentDate.toLocaleDateString()}`);
         for (let hour = period.start; hour < period.end; hour++) {
           for (let minute = 0; minute < 60; minute += durationMinutes) {
-            // Créer une date pour ce créneau
-            const slotStart = new Date(currentDate);
-            slotStart.setHours(hour, minute, 0, 0);
-            
-            const slotEnd = new Date(slotStart);
-            slotEnd.setMinutes(slotStart.getMinutes() + durationMinutes);
-            
+            // Construire la date locale (fuseau souhaité)
+            const datePart = currentDate.toLocaleDateString('en-CA', { timeZone });
+            const h = String(hour).padStart(2, '0');
+            const m = String(minute).padStart(2, '0');
+
+            const slotStartLocal = `${datePart}T${h}:${m}:00`;
+            const slotEndTemp = new Date(`${slotStartLocal}`);
+            slotEndTemp.setMinutes(slotEndTemp.getMinutes() + durationMinutes);
+            const endH = String(slotEndTemp.getHours()).padStart(2, '0');
+            const endM = String(slotEndTemp.getMinutes()).padStart(2, '0');
+            const slotEndLocal = `${datePart}T${endH}:${endM}:00`;
+
+            // Convertir en dates UTC pour la comparaison
+            const slotStart = new Date(ensureTimezone(slotStartLocal, timeZone));
+            const slotEnd = new Date(ensureTimezone(slotEndLocal, timeZone));
+
             // Ne pas dépasser l'heure de fin de période
             if ((hour === period.end - 1) && (minute + durationMinutes > 60)) {
               continue;
             }
-            
-            // Formatage explicite des heures pour l'API Google sans conversion UTC
-            const slotStartISO = formatDateWithoutConversion(slotStart);
-            const slotEndISO = formatDateWithoutConversion(slotEnd);
-            
+
             // Vérifier si le créneau est disponible (non occupé)
             if (isSlotAvailable(slotStart, slotEnd, busyTimesParsed)) {
-              const formattedTime = formatDateRange(slotStart, slotEnd);
+              const formattedTime = formatDateRange(slotStart, slotEnd, 'fr-FR', timeZone);
               console.log(`Créneau disponible trouvé: ${formattedTime}`);
-              
+
               slots.push({
                 id: `slot-${slotStart.getTime()}`,
-                start: slotStartISO,
-                end: slotEndISO,
+                start: slotStartLocal,
+                end: slotEndLocal,
                 formattedTime,
                 timeZone,
                 rawStartTime: `${hour}:${minute.toString().padStart(2, '0')}`,
@@ -377,23 +389,30 @@ export const isSlotAvailable = (
 };
 
 // Formatter une plage de dates pour l'affichage
-export const formatDateRange = (start: Date, end: Date, locale: string = 'fr-FR') => {
-  const formattedDate = start.toLocaleDateString(locale, { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
-  });
-  
-  const formattedStartTime = start.toLocaleTimeString(locale, { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-  
-  const formattedEndTime = end.toLocaleTimeString(locale, { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-  
+export const formatDateRange = (
+  start: Date,
+  end: Date,
+  locale: string = 'fr-FR',
+  timeZone?: string
+) => {
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  };
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit'
+  };
+  if (timeZone) {
+    dateOptions.timeZone = timeZone;
+    timeOptions.timeZone = timeZone;
+  }
+
+  const formattedDate = start.toLocaleDateString(locale, dateOptions);
+  const formattedStartTime = start.toLocaleTimeString(locale, timeOptions);
+  const formattedEndTime = end.toLocaleTimeString(locale, timeOptions);
+
   return `${formattedDate} — ${formattedStartTime} - ${formattedEndTime}`;
 };
 
@@ -436,7 +455,7 @@ export const generateMockTimeSlots = (
               id: `slot-${slotStart.getTime()}`,
               start: slotStart.toISOString(),
               end: slotEnd.toISOString(),
-              formattedTime: formatDateRange(slotStart, slotEnd)
+              formattedTime: formatDateRange(slotStart, slotEnd, 'fr-FR', timeZone)
             });
           }
         }
