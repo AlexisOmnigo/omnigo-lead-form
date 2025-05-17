@@ -94,35 +94,18 @@ const isValidEmail = (email: string): boolean => {
 // Fonction pour s'assurer qu'une chaîne de date est correctement formatée avec le fuseau horaire
 function ensureTimezone(dateString: string, timeZone: string): string {
   try {
-    // Si la date contient déjà des informations de fuseau horaire, préserver le format
+    // Si la date contient déjà un fuseau horaire, ne rien changer
     if (dateString.includes('Z') || dateString.includes('+')) {
-      console.log(`Date déjà avec fuseau: ${dateString}`);
       return dateString;
     }
-    
-    // Créer un objet Date à partir de la chaîne
-    const date = new Date(dateString);
-    
-    // Solution compatible avec Google Calendar:
-    // 1. Formatter la date locale sans le Z
-    // 2. Spécifier le fuseau horaire séparément dans l'objet
-    
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
-    // Format RFC 3339 sans 'Z' à la fin pour indiquer que ce n'est PAS UTC
-    const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-    
-    console.log(`Date originale: ${dateString}`);
-    console.log(`Date formatée: ${formattedDate}`);
-    console.log(`Fuseau horaire: ${timeZone}`);
-    
-    // La date sans 'Z' et avec timeZone séparé sera interprétée correctement par Google
-    return formattedDate;
+
+    // Convertir la date en UTC en tenant compte du fuseau souhaité
+    const localDate = new Date(dateString);
+    const tzDate = new Date(localDate.toLocaleString('en-US', { timeZone }));
+    const offsetMs = localDate.getTime() - tzDate.getTime();
+    const utcDate = new Date(localDate.getTime() + offsetMs);
+
+    return utcDate.toISOString();
   } catch (e) {
     console.error(`Erreur lors de la conversion de la date: ${dateString}`, e);
     return dateString;
@@ -254,7 +237,7 @@ export const generateAvailableTimeSlots = (
   console.log(`Date de fin: ${endDate.toISOString()}`);
   console.log(`Environnement: ${process.env.NODE_ENV || 'development'}`);
   
-  // Convertir les périodes occupées en objets Date locaux
+  // Convertir les périodes occupées en objets Date
   const busyTimesParsed = busyTimes.map(slot => ({
     start: new Date(slot.start),
     end: new Date(slot.end)
@@ -266,47 +249,43 @@ export const generateAvailableTimeSlots = (
   }
   
   const slots = [];
-  const currentDate = new Date(startDate);
-  
-  // Calculer le décalage horaire entre UTC et le fuseau souhaité pour compensation
-  // Ceci est crucial pour garantir que les heures sont correctes dans le fuseau de l'utilisateur
-  const userTZOffset = startDate.getTimezoneOffset() * 60000; // en millisecondes
-  console.log(`Décalage du fuseau horaire local: ${userTZOffset / 3600000} heures`);
+  let currentDate = new Date(startDate);
+
+  // S'assurer que currentDate commence au début de la journée dans le fuseau demandé
+  const offsetMinStart = getTimeZoneOffset(currentDate, timeZone);
+  currentDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate(), 0, 0));
+  currentDate = new Date(currentDate.getTime() + offsetMinStart * 60000);
   
   while (currentDate < endDate) {
-    // Ignorer les weekends
-    if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
-      // Heures de travail : 9h-12h et 14h-17h
+    const offsetMin = getTimeZoneOffset(currentDate, timeZone);
+    const localDay = new Date(currentDate.toLocaleString('en-US', { timeZone })).getDay();
+
+    // Ignorer les weekends selon le fuseau horaire demandé
+    if (localDay !== 0 && localDay !== 6) {
       const workingHours = [
         { start: 9, end: 12 },
         { start: 14, end: 17 }
       ];
-      
+
       for (const period of workingHours) {
         console.log(`Génération des créneaux pour la période ${period.start}h-${period.end}h le ${currentDate.toLocaleDateString()}`);
         for (let hour = period.start; hour < period.end; hour++) {
           for (let minute = 0; minute < 60; minute += durationMinutes) {
-            // Créer une date pour ce créneau
-            const slotStart = new Date(currentDate);
-            slotStart.setHours(hour, minute, 0, 0);
-            
-            const slotEnd = new Date(slotStart);
-            slotEnd.setMinutes(slotStart.getMinutes() + durationMinutes);
-            
+            const slotStart = makeSlotDate(currentDate, hour, minute, offsetMin);
+            const slotEnd = makeSlotDate(currentDate, hour, minute + durationMinutes, offsetMin);
+
             // Ne pas dépasser l'heure de fin de période
             if ((hour === period.end - 1) && (minute + durationMinutes > 60)) {
               continue;
             }
-            
-            // Formatage explicite des heures pour l'API Google sans conversion UTC
-            const slotStartISO = formatDateWithoutConversion(slotStart);
-            const slotEndISO = formatDateWithoutConversion(slotEnd);
-            
-            // Vérifier si le créneau est disponible (non occupé)
+
+            const slotStartISO = slotStart.toISOString();
+            const slotEndISO = slotEnd.toISOString();
+
             if (isSlotAvailable(slotStart, slotEnd, busyTimesParsed)) {
               const formattedTime = formatDateRange(slotStart, slotEnd);
               console.log(`Créneau disponible trouvé: ${formattedTime}`);
-              
+
               slots.push({
                 id: `slot-${slotStart.getTime()}`,
                 start: slotStartISO,
@@ -322,10 +301,9 @@ export const generateAvailableTimeSlots = (
         }
       }
     }
-    
+
     // Passer au jour suivant
-    currentDate.setDate(currentDate.getDate() + 1);
-    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
   }
   
   console.log(`Nombre total de créneaux disponibles générés: ${slots.length}`);
@@ -337,17 +315,25 @@ export const generateAvailableTimeSlots = (
   return slots;
 };
 
-// Format une date sans conversion en UTC
-function formatDateWithoutConversion(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  
-  // Format RFC 3339 sans 'Z' à la fin
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+
+// Obtenir l'offset en minutes pour un fuseau horaire donné à une date précise
+function getTimeZoneOffset(date: Date, timeZone: string): number {
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' });
+  const parts = fmt.formatToParts(date);
+  const tzPart = parts.find(p => p.type === 'timeZoneName');
+  if (!tzPart) return 0;
+  const match = tzPart.value.match(/GMT([+-])(\d{2})(?::?(\d{2}))?/);
+  if (!match) return 0;
+  const sign = match[1] === '-' ? -1 : 1;
+  const hours = parseInt(match[2], 10);
+  const minutes = match[3] ? parseInt(match[3], 10) : 0;
+  return sign * (hours * 60 + minutes);
+}
+
+// Créer une date UTC correspondant à l'heure locale souhaitée
+function makeSlotDate(base: Date, hour: number, minute: number, offsetMin: number): Date {
+  const utc = Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), hour, minute);
+  return new Date(utc - offsetMin * 60000);
 }
 
 // Vérifier si un créneau horaire est disponible
