@@ -23,8 +23,8 @@ interface TeamMember {
   calendarId?: string;
 }
 
-// Type des paramètres pour Next.js 15
-type ParamsType = Promise<{ departement: string }>;
+// Type de paramètre du segment dynamique
+type ParamsType = { departement: string };
 
 export default function EmployeeAvailabilityPage({
   params,
