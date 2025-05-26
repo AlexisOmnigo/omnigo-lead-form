@@ -13,7 +13,7 @@ interface CardGridProps {
 const teamMembers: CardGridItemProps[] = [
   {
     name: "Samuel Béland",
-    role: "CEO",
+    role: "Directeur Général",
     department: ["Ventes", "Marketing", "Développement"],
     image: "/photos/samuel.jpg",
     imageOffsetX: "50%",
@@ -35,8 +35,8 @@ const teamMembers: CardGridItemProps[] = [
   },
   {
     name: "Alexis Potvin",
-    role: "Responsable des Opérations de développement",
-    department: ["Développement", "Ventes"],
+    role: "Directeur des Opérations Technologiques",
+    department: ["Développement"],
     image: "/photos/alexis.jpg",
     imageOffsetX: "55%",
     imageOffsetY: "-25%",

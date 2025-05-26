@@ -296,7 +296,7 @@ export default function LeadQualificationForm() {
                   htmlFor="new"
                   className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
                 >
-                  <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">Non, je suis un nouveau prospect</span>
+                  <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">Non, je suis un nouveau client</span>
                 </Label>
               </div>
             </RadioGroup>
