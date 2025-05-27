@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getAvailableTimeSlots } from '@/lib/googleCalendar';
+import { getAvailableTimeSlots, getOffsetForTimezone } from '@/lib/googleCalendar';
+
+function parseDateWithTimeZone(dateString: string, timeZone: string): Date {
+  // Traite la date reçue comme UTC puis applique le fuseau cible
+  const utcDate = new Date(dateString);
+  const offset = getOffsetForTimezone(utcDate, timeZone);
+  return new Date(utcDate.getTime() - offset);
+}
 
 export async function POST(request: Request) {
   try {
-    const { calendarId, startDate, endDate, timeZone = '/Paris', duration = 30 } = await request.json();
+    const { calendarId, startDate, endDate, timeZone = 'America/Montreal', duration = 30 } = await request.json();
     
     if (!calendarId || !startDate || !endDate) {
       return NextResponse.json({ 
@@ -15,8 +22,8 @@ export async function POST(request: Request) {
       // Utiliser la fonction mise à jour pour récupérer les créneaux disponibles
       const availableSlots = await getAvailableTimeSlots(
         calendarId,
-        new Date(startDate),
-        new Date(endDate),
+        parseDateWithTimeZone(startDate, timeZone),
+        parseDateWithTimeZone(endDate, timeZone),
         duration,
         timeZone
       );
