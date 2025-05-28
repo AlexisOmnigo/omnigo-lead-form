@@ -268,12 +268,18 @@ export const generateAvailableTimeSlots = (
   const slots = [];
 
   // Calculer le décalage entre l'heure UTC et le fuseau horaire souhaité
+  // Ceci permet de convertir correctement les heures fournies en heure locale
   const tzOffset = startDate.getTime() - new Date(startDate.toLocaleString('en-US', { timeZone })).getTime();
   console.log(`Décalage appliqué pour le fuseau ${timeZone}: ${tzOffset / 3600000} heures`);
 
-  // Normaliser la date courante et la date de fin dans le fuseau ciblé
-  const currentDate = new Date(startDate.getTime() - tzOffset);
-  const endDateAdjusted = new Date(endDate.getTime() - tzOffset);
+  // Normaliser la date courante et la date de fin au début et à la fin de la journée
+  let currentDate = new Date(startDate.getTime() - tzOffset);
+  currentDate.setHours(0, 0, 0, 0);
+  currentDate = new Date(currentDate.getTime() + tzOffset);
+
+  let endDateAdjusted = new Date(endDate.getTime() - tzOffset);
+  endDateAdjusted.setHours(23, 59, 59, 999);
+  endDateAdjusted = new Date(endDateAdjusted.getTime() + tzOffset);
   
   while (currentDate < endDateAdjusted) {
     // Ignorer les weekends
@@ -288,8 +294,8 @@ export const generateAvailableTimeSlots = (
         console.log(`Génération des créneaux pour la période ${period.start}h-${period.end}h le ${currentDate.toLocaleDateString()}`);
         for (let hour = period.start; hour < period.end; hour++) {
           for (let minute = 0; minute < 60; minute += durationMinutes) {
-            // Créer une date pour ce créneau en tenant compte du fuseau horaire
-            const slotStart = new Date(currentDate.getTime() + hour * 3600000 + minute * 60000 + tzOffset);
+            // Créer une date pour ce créneau dans le fuseau horaire cible
+            const slotStart = new Date(currentDate.getTime() + hour * 3600000 + minute * 60000);
             const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60000);
             
             // Ne pas dépasser l'heure de fin de période
@@ -407,8 +413,14 @@ export const generateMockTimeSlots = (
   const slots = [];
 
   const tzOffset = startDate.getTime() - new Date(startDate.toLocaleString('en-US', { timeZone })).getTime();
-  const currentDate = new Date(startDate.getTime() - tzOffset);
-  const endDateAdjusted = new Date(endDate.getTime() - tzOffset);
+
+  let currentDate = new Date(startDate.getTime() - tzOffset);
+  currentDate.setHours(0, 0, 0, 0);
+  currentDate = new Date(currentDate.getTime() + tzOffset);
+
+  let endDateAdjusted = new Date(endDate.getTime() - tzOffset);
+  endDateAdjusted.setHours(23, 59, 59, 999);
+  endDateAdjusted = new Date(endDateAdjusted.getTime() + tzOffset);
   
   while (currentDate < endDateAdjusted) {
     // Ignorer les weekends
@@ -420,7 +432,7 @@ export const generateMockTimeSlots = (
         
         // Pour chaque heure, générer des créneaux de la durée spécifiée
         for (let minute = 0; minute < 60; minute += durationMinutes) {
-          const slotStart = new Date(currentDate.getTime() + hour * 3600000 + minute * 60000 + tzOffset);
+          const slotStart = new Date(currentDate.getTime() + hour * 3600000 + minute * 60000);
           const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60000);
           
           // Ne pas dépasser l'heure de fin de journée
