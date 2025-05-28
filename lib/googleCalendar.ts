@@ -266,14 +266,22 @@ export const generateAvailableTimeSlots = (
   }
   
   const slots = [];
-  const currentDate = new Date(startDate);
+
+  // Calculer le décalage entre l'heure UTC et le fuseau horaire souhaité
+  // Ceci permet de convertir correctement les heures fournies en heure locale
+  const tzOffset = startDate.getTime() - new Date(startDate.toLocaleString('en-US', { timeZone })).getTime();
+  console.log(`Décalage appliqué pour le fuseau ${timeZone}: ${tzOffset / 3600000} heures`);
+
+  // Normaliser la date courante et la date de fin au début et à la fin de la journée
+  let currentDate = new Date(startDate.getTime() - tzOffset);
+  currentDate.setHours(0, 0, 0, 0);
+  currentDate = new Date(currentDate.getTime() + tzOffset);
+
+  let endDateAdjusted = new Date(endDate.getTime() - tzOffset);
+  endDateAdjusted.setHours(23, 59, 59, 999);
+  endDateAdjusted = new Date(endDateAdjusted.getTime() + tzOffset);
   
-  // Calculer le décalage horaire entre UTC et le fuseau souhaité pour compensation
-  // Ceci est crucial pour garantir que les heures sont correctes dans le fuseau de l'utilisateur
-  const userTZOffset = startDate.getTimezoneOffset() * 60000; // en millisecondes
-  console.log(`Décalage du fuseau horaire local: ${userTZOffset / 3600000} heures`);
-  
-  while (currentDate < endDate) {
+  while (currentDate < endDateAdjusted) {
     // Ignorer les weekends
     if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
       // Heures de travail : 9h-12h et 14h-17h
@@ -286,12 +294,9 @@ export const generateAvailableTimeSlots = (
         console.log(`Génération des créneaux pour la période ${period.start}h-${period.end}h le ${currentDate.toLocaleDateString()}`);
         for (let hour = period.start; hour < period.end; hour++) {
           for (let minute = 0; minute < 60; minute += durationMinutes) {
-            // Créer une date pour ce créneau
-            const slotStart = new Date(currentDate);
-            slotStart.setHours(hour, minute, 0, 0);
-            
-            const slotEnd = new Date(slotStart);
-            slotEnd.setMinutes(slotStart.getMinutes() + durationMinutes);
+            // Créer une date pour ce créneau dans le fuseau horaire cible
+            const slotStart = new Date(currentDate.getTime() + hour * 3600000 + minute * 60000);
+            const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60000);
             
             // Ne pas dépasser l'heure de fin de période
             if ((hour === period.end - 1) && (minute + durationMinutes > 60)) {
@@ -304,7 +309,7 @@ export const generateAvailableTimeSlots = (
             
             // Vérifier si le créneau est disponible (non occupé)
             if (isSlotAvailable(slotStart, slotEnd, busyTimesParsed)) {
-              const formattedTime = formatDateRange(slotStart, slotEnd);
+              const formattedTime = formatDateRange(slotStart, slotEnd, 'fr-FR', timeZone);
               console.log(`Créneau disponible trouvé: ${formattedTime}`);
               
               slots.push({
@@ -324,8 +329,8 @@ export const generateAvailableTimeSlots = (
     }
     
     // Passer au jour suivant
-    currentDate.setDate(currentDate.getDate() + 1);
-    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    currentDate.setUTCHours(0, 0, 0, 0);
   }
   
   console.log(`Nombre total de créneaux disponibles générés: ${slots.length}`);
@@ -339,15 +344,8 @@ export const generateAvailableTimeSlots = (
 
 // Format une date sans conversion en UTC
 function formatDateWithoutConversion(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  
-  // Format RFC 3339 sans 'Z' à la fin
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  // Utiliser l'ISO standard avec le "Z" final pour conserver l'instant précis
+  return date.toISOString();
 }
 
 // Vérifier si un créneau horaire est disponible
@@ -377,23 +375,31 @@ export const isSlotAvailable = (
 };
 
 // Formatter une plage de dates pour l'affichage
-export const formatDateRange = (start: Date, end: Date, locale: string = 'fr-FR') => {
-  const formattedDate = start.toLocaleDateString(locale, { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
+export const formatDateRange = (
+  start: Date,
+  end: Date,
+  locale: string = 'fr-FR',
+  timeZone: string = 'America/Montreal'
+) => {
+  const formattedDate = start.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone,
   });
-  
-  const formattedStartTime = start.toLocaleTimeString(locale, { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+
+  const formattedStartTime = start.toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone,
   });
-  
-  const formattedEndTime = end.toLocaleTimeString(locale, { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+
+  const formattedEndTime = end.toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone,
   });
-  
+
   return `${formattedDate} — ${formattedStartTime} - ${formattedEndTime}`;
 };
 
@@ -405,9 +411,18 @@ export const generateMockTimeSlots = (
   timeZone: string = 'America/Montreal'
 ) => {
   const slots = [];
-  const currentDate = new Date(startDate);
+
+  const tzOffset = startDate.getTime() - new Date(startDate.toLocaleString('en-US', { timeZone })).getTime();
+
+  let currentDate = new Date(startDate.getTime() - tzOffset);
+  currentDate.setHours(0, 0, 0, 0);
+  currentDate = new Date(currentDate.getTime() + tzOffset);
+
+  let endDateAdjusted = new Date(endDate.getTime() - tzOffset);
+  endDateAdjusted.setHours(23, 59, 59, 999);
+  endDateAdjusted = new Date(endDateAdjusted.getTime() + tzOffset);
   
-  while (currentDate < endDate) {
+  while (currentDate < endDateAdjusted) {
     // Ignorer les weekends
     if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
       // Heures de travail : 9h-12h et 14h-17h
@@ -417,16 +432,13 @@ export const generateMockTimeSlots = (
         
         // Pour chaque heure, générer des créneaux de la durée spécifiée
         for (let minute = 0; minute < 60; minute += durationMinutes) {
-          const slotStart = new Date(currentDate);
-          slotStart.setHours(hour, minute, 0, 0);
-          
-          const slotEnd = new Date(slotStart);
-          slotEnd.setMinutes(slotStart.getMinutes() + durationMinutes);
+          const slotStart = new Date(currentDate.getTime() + hour * 3600000 + minute * 60000);
+          const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60000);
           
           // Ne pas dépasser l'heure de fin de journée
           if ((hour === 11 && minute + durationMinutes > 60) || 
               (hour === 16 && minute + durationMinutes > 60) ||
-              slotEnd > endDate) {
+              slotEnd > endDateAdjusted) {
             continue;
           }
           
@@ -436,7 +448,7 @@ export const generateMockTimeSlots = (
               id: `slot-${slotStart.getTime()}`,
               start: slotStart.toISOString(),
               end: slotEnd.toISOString(),
-              formattedTime: formatDateRange(slotStart, slotEnd)
+              formattedTime: formatDateRange(slotStart, slotEnd, 'fr-FR', timeZone)
             });
           }
         }
@@ -444,8 +456,8 @@ export const generateMockTimeSlots = (
     }
     
     // Passer au jour suivant
-    currentDate.setDate(currentDate.getDate() + 1);
-    currentDate.setHours(0, 0, 0, 0);
+    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+    currentDate.setUTCHours(0, 0, 0, 0);
   }
   
   return slots;
