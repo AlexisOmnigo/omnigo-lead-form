@@ -14,17 +14,16 @@ const departmentNames: Record<string, string> = {
   'ventes': 'Ventes'
 };
 
-// Définir le type des paramètres comme une Promise pour Next.js 15
-type ParamsType = Promise<{ department: string }>;
+// Type correct des paramètres du segment dynamique
+type ParamsType = { department: string };
 
 // Suivre le modèle de Next.js 15 pour les composants de page
-export default async function Page({
+export default function Page({
   params,
 }: {
   params: ParamsType
 }) {
-  // Attend la résolution de la Promise params
-  const { department } = await params;
+  const { department } = params;
   
   // Récupérer le nom d'affichage correct avec accents si disponible
   const normalizedDept = normalizeString(department);
