@@ -14,6 +14,23 @@ pnpm dev
 bun dev
 ```
 
+## Environment Variables
+
+The Google Calendar features require a service account or OAuth credentials. Create a `.env.local` file and provide the following variables:
+
+```bash
+GOOGLE_CLIENT_EMAIL=<service-account-email>
+GOOGLE_PRIVATE_KEY=<service-account-private-key>
+GOOGLE_PROJECT_ID=<google-project-id>
+
+# Optional OAuth configuration
+GOOGLE_CLIENT_ID=<oauth-client-id>
+GOOGLE_CLIENT_SECRET=<oauth-client-secret>
+GOOGLE_REDIRECT_URI=<oauth-redirect-uri>
+```
+
+Ensure the service account has access to the calendars that will receive meetings.
+
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.

@@ -38,8 +38,8 @@ export async function POST(request: Request) {
       attendees,
       timeZone
     );
-    
-    return NextResponse.json(result);
+
+    return NextResponse.json({ success: true, event: result });
   } catch (error) {
     console.error('Erreur lors de la création de l\'événement:', error);
     return NextResponse.json({ 
