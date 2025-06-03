@@ -1,5 +1,5 @@
 import LeadQualificationForm from "@/components/lead-qualification/lead-form"
-
+<link rel="icon" href="/favicon.ico" sizes="any" />
 export default function Page() {
   return (
     <main className="bg-gray-50 dark:bg-zinc-950 min-h-screen">
