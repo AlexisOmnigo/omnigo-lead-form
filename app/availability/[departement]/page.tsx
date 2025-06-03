@@ -377,8 +377,8 @@ ${additionalInfo || "Aucune information complémentaire"}
       });
       
       const data = await response.json();
-      
-      if (data.success) {
+
+      if (response.ok && data.success) {
         // Afficher un message de confirmation
         alert(`Rendez-vous confirmé pour le ${selectedTimeSlot.formattedTime}.\n\nUn email de confirmation a été envoyé à ${userEmail}.`);
         
