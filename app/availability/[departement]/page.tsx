@@ -499,18 +499,6 @@ ${additionalInfo || "Aucune information complémentaire"}
           </CardContent>
         </Card>
         
-        {/* Note explicative sur l'intégration */}
-        <div className="mt-8 text-sm text-gray-500 max-w-4xl mx-auto">
-          <p className="mb-2"><strong>Note sur l&apos;intégration Google Calendar :</strong></p>
-          <p>Pour une intégration complète avec Google Calendar, il faudrait:</p>
-          <ol className="list-decimal pl-5 space-y-1">
-            <li>Configurer l&apos;authentification OAuth 2.0 pour Google Calendar API</li>
-            <li>Implémenter le backend pour récupérer les créneaux disponibles</li>
-            <li>Créer un endpoint API pour réserver un créneau et créer un événement</li>
-            <li>Envoyer des e-mails de confirmation avec les détails du rendez-vous</li>
-            <li>Gérer la synchronisation entre les calendriers et les fuseaux horaires</li>
-          </ol>
-        </div>
       </div>
     </main>
   );

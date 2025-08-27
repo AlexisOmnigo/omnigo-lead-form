@@ -166,6 +166,7 @@ export const generateAvailableTimeSlots = (
           const slotStart = toUtc(year, month, day, hour, minute, timeZone);
           const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60000);
           if (slotEnd > endDate) continue;
+          if (slotStart <= new Date()) continue; // Skip past time slots
           if (isSlotAvailable(slotStart, slotEnd, busyTimes)) {
             slots.push({
               id: `slot-${slotStart.getTime()}`,

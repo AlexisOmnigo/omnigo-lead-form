@@ -23,7 +23,7 @@ interface FormData {
   companySize: "1-10" | "11-50" | "51-200" | "201-500" | "500+" | ""
   industry: "Tech" | "Finance" | "Santé" | "Éducation" | "E-commerce" | "Autre" | ""
   currentWebsite: string
-  budget: "< 5K€" | "5K€ - 20K€" | "20K€ - 50K€" | "> 50K€" | ""
+  budget: "< 5K$" | "5K$ - 20K$" | "20K$ - 50K$" | "> 50K$" | ""
   timeline: "Immédiat" | "1-3 mois" | "3-6 mois" | "> 6 mois" | ""
   marketingGoals: string[]
   salesGoals: string[]
@@ -78,16 +78,16 @@ export default function LeadQualificationForm() {
 
       // Budget scoring
       switch (formData.budget) {
-        case "< 5K€":
+        case "< 5K$":
           score += 5
           break
-        case "5K€ - 20K€":
+        case "5K$ - 20K$":
           score += 10
           break
-        case "20K€ - 50K€":
+        case "20K$ - 50K$":
           score += 15
           break
-        case "> 50K€":
+        case "> 50K$":
           score += 20
           break
       }
@@ -662,39 +662,39 @@ export default function LeadQualificationForm() {
                   className="grid grid-cols-1 sm:grid-cols-2 gap-2"
                 >
                   <div>
-                    <RadioGroupItem value="< 5K€" id="budget1" className="peer sr-only" />
+                    <RadioGroupItem value="< 5K$" id="budget1" className="peer sr-only" />
                     <Label
                       htmlFor="budget1"
                       className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
                     >
-                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{"< 5K€"}</span>
+                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{"< 5K$"}</span>
                     </Label>
                   </div>
                   <div>
-                    <RadioGroupItem value="5K€ - 20K€" id="budget2" className="peer sr-only" />
+                    <RadioGroupItem value="5K$ - 20K$" id="budget2" className="peer sr-only" />
                     <Label
                       htmlFor="budget2"
                       className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
                     >
-                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">5K€ - 20K€</span>
+                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">5K$ - 20K$</span>
                     </Label>
                   </div>
                   <div>
-                    <RadioGroupItem value="20K€ - 50K€" id="budget3" className="peer sr-only" />
+                    <RadioGroupItem value="20K$ - 50K$" id="budget3" className="peer sr-only" />
                     <Label
                       htmlFor="budget3"
                       className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
                     >
-                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">20K€ - 50K€</span>
+                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">20K$ - 50K$</span>
                     </Label>
                   </div>
                   <div>
-                    <RadioGroupItem value="> 50K€" id="budget4" className="peer sr-only" />
+                    <RadioGroupItem value="> 50K$" id="budget4" className="peer sr-only" />
                     <Label
                       htmlFor="budget4"
                       className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-2 hover:bg-[#7DF9FF]/10 hover:border-[#7DF9FF] dark:hover:bg-[#1c7f82] peer-data-[state=checked]:hover:bg-[#7DF9FF] peer-data-[state=checked]:border-[#7DF9FF] peer-data-[state=checked]:bg-[#7DF9FF] dark:peer-data-[state=checked]:text-white [&:has([data-state=checked])]:border-[#7DF9FF] cursor-pointer"
                     >
-                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{"> 50K€"}</span>
+                      <span className="text-sm font-medium dark:text-zinc-900 dark:peer-data-[state=checked]:text-white">{"> 50K$"}</span>
                     </Label>
                   </div>
                 </RadioGroup>
